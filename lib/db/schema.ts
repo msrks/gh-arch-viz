@@ -92,6 +92,16 @@ export const repoInventory = pgTable(
     repoUpdatedAt: timestamp("repo_updated_at"), // Last update from GitHub (pushed_at)
     repoPushedAt: timestamp("repo_pushed_at"), // Last push from GitHub
 
+    // Contributors information
+    contributors: jsonb("contributors").$type<Array<{
+      login: string;
+      avatarUrl: string;
+      profileUrl: string;
+      contributions: number;
+    }>>(),
+    contributorsCount: integer("contributors_count").default(0),
+    contributorsUpdatedAt: timestamp("contributors_updated_at"),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

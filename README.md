@@ -23,6 +23,7 @@
 - **📝 Evidence Tracking** - View exact files and snippets used for detection
 - **📊 Visual Insights** - Charts and graphs showing technology distribution
 - **👥 Member Management** - View organization members with roles, avatars, and activity
+- **👤 Contributors Display** - View repository contributors with avatars and contribution counts
 - **⚡ Fast Scanning** - Batch parallel processing (dev) or QStash background jobs (prod)
 - **🕒 Smart Sorting** - Repositories sorted by last push date with "X days ago" display
 - **🎨 Modern UI** - Built with shadcn/ui, Tailwind CSS v4, and GitHub language colors

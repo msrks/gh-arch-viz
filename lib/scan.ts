@@ -2,7 +2,7 @@ import type { Octokit } from "@octokit/rest";
 import { db } from "@/lib/db";
 import { repoInventory } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getRepoTree, getText } from "./github";
+import { getRepoTree, getText, listRepoContributors } from "./github";
 import { createId } from "@paralleldrive/cuid2";
 
 export type DetectorContext = {
@@ -61,6 +61,9 @@ export function initInventory(meta: {
     missingSignals: [],
     policyStatus: null,
     policyViolations: null,
+    contributors: null,
+    contributorsCount: 0,
+    contributorsUpdatedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -160,6 +163,17 @@ export async function scanOneRepo(
   // Update GitHub repo metadata
   if (meta.pushedAt) inv.repoPushedAt = meta.pushedAt;
   if (meta.updatedAt) inv.repoUpdatedAt = meta.updatedAt;
+
+  // Fetch contributors information
+  try {
+    const contributors = await listRepoContributors(octokit, owner, repo);
+    inv.contributors = contributors;
+    inv.contributorsCount = contributors.length;
+    inv.contributorsUpdatedAt = new Date();
+  } catch (error) {
+    console.error(`Failed to fetch contributors for ${owner}/${repo}:`, error);
+    // Keep existing contributors data if fetch fails
+  }
 
   // Upsert to database
   if (existing) {

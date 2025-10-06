@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ScanAllButton } from "@/components/scan-all-button";
+import { ContributorsAvatars } from "@/components/contributors-avatars";
 
 /**
  * Format date as relative time (e.g., "2 days ago", "3 months ago")
@@ -105,12 +106,13 @@ export default async function AppPage() {
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Language</TableHead>
                 <TableHead>Frameworks</TableHead>
+                <TableHead>Contributors</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {inventory.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No repositories scanned yet. Click &quot;Scan All Repositories&quot; to begin.
                   </TableCell>
                 </TableRow>
@@ -155,6 +157,16 @@ export default async function AppPage() {
                           </Badge>
                         ))}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <ContributorsAvatars
+                        contributors={repo.contributors as Array<{
+                          login: string;
+                          avatarUrl: string;
+                          profileUrl: string;
+                          contributions: number;
+                        }> | null}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

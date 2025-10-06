@@ -297,6 +297,53 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
 ---
 
+## 🎨 Phase 6: Contributors 可視化機能
+
+### 6.1 データベーススキーマ
+
+- [x] **repo_inventory テーブルへの追加**
+  - [x] スキーマ定義 (`lib/db/schema.ts`)
+    - `contributors` (JSONB) - 貢献者情報の配列
+    - `contributorsCount` (integer) - 貢献者数
+    - `contributorsUpdatedAt` (timestamp) - 最終更新日時
+  - [x] `pnpm db:push` でスキーマ反映
+
+### 6.2 GitHub API 統合
+
+- [x] **Contributors 取得関数**
+  - [x] `lib/github.ts` に `listRepoContributors()` 追加
+    - `/repos/{owner}/{repo}/contributors` API 呼び出し
+    - ページネーション対応（最大100件取得）
+    - Bot アカウントのフィルタリング
+    - 上位10名のみ保存（画面表示用）
+
+### 6.3 スキャン処理への統合
+
+- [x] **`lib/scan.ts` の更新**
+  - [x] `scanOneRepo()` 内で contributors 情報を取得
+  - [x] `initInventory()` に contributors フィールドを追加
+  - [x] エラーハンドリング（404、タイムアウト対応）
+
+### 6.4 UI 実装
+
+- [x] **`/app/page.tsx` の更新**
+  - [x] テーブルに Contributors 列を追加
+  - [x] 列順: Repository | Last Updated | Language | Frameworks | Contributors
+  - [x] アバター表示コンポーネントの実装
+    - 最大7名のアバターを重ねて表示
+    - 8人目以降は "+N" で表示
+    - ホバーで全貢献者のツールチップ表示
+
+### 6.5 スタイリング
+
+- [x] **Contributors 表示の最適化**
+  - [x] アバター: 32x32px (円形)
+  - [x] 重なり配置: -8px マージン
+  - [x] ホバー効果: border highlight
+  - [x] "+N" バッジ: 円形、グレー背景
+
+---
+
 ## 🔍 テスト・品質保証
 
 - [ ] **手動テスト項目**

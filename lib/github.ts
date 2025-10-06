@@ -188,3 +188,45 @@ export async function getMemberRole(
 
   return data.role as "admin" | "member";
 }
+
+/**
+ * List repository contributors (top 10 only)
+ */
+export async function listRepoContributors(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<Array<{
+  login: string;
+  avatarUrl: string;
+  profileUrl: string;
+  contributions: number;
+}>> {
+  try {
+    // Fetch first page only (per_page=100) to get top contributors
+    const { data } = await octokit.rest.repos.listContributors({
+      owner,
+      repo,
+      per_page: 100,
+      anon: "false", // Exclude anonymous contributors
+    });
+
+    // Filter out bots and take top 10
+    return data
+      .filter((c) => c.type === "User")
+      .slice(0, 10)
+      .map((c) => ({
+        login: c.login || "",
+        avatarUrl: c.avatar_url || "",
+        profileUrl: c.html_url || "",
+        contributions: c.contributions || 0,
+      }));
+  } catch (error: any) {
+    // Handle 404 (empty repo, no contributors) or 403 (rate limit)
+    if (error.status === 404 || error.status === 403) {
+      console.warn(`Could not fetch contributors for ${owner}/${repo}:`, error.message);
+      return [];
+    }
+    throw error;
+  }
+}
