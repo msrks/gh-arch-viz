@@ -1,4 +1,5 @@
 import type { Detector } from "../scan";
+import { hasPackageDependency } from "./helpers";
 
 /**
  * Detect client framework: Vue, React, Next.js, Nuxt.js
@@ -31,43 +32,25 @@ export const clientDetector: Detector = async ({ tree, read, current }) => {
 
   // Check for Vue
   if (!client) {
-    const pkgFile = await read("package.json");
-    if (pkgFile) {
-      try {
-        const pkg = JSON.parse(pkgFile);
-        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-
-        if (deps.vue || deps["@vue/cli"]) {
-          client = "Vue";
-          proofs.push({
-            file: "package.json",
-            snippet: `Vue detected: ${deps.vue || deps["@vue/cli"]}`,
-          });
-        }
-      } catch {
-        // ignore parse errors
-      }
+    const result = await hasPackageDependency(tree, read, ["vue", "@vue/cli"]);
+    if (result.found) {
+      client = "Vue";
+      proofs.push({
+        file: result.file!,
+        snippet: `Vue detected: ${result.version}`,
+      });
     }
   }
 
   // Check for React
   if (!client) {
-    const pkgFile = await read("package.json");
-    if (pkgFile) {
-      try {
-        const pkg = JSON.parse(pkgFile);
-        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-
-        if (deps.react) {
-          client = "React";
-          proofs.push({
-            file: "package.json",
-            snippet: `React detected: ${deps.react}`,
-          });
-        }
-      } catch {
-        // ignore parse errors
-      }
+    const result = await hasPackageDependency(tree, read, "react");
+    if (result.found) {
+      client = "React";
+      proofs.push({
+        file: result.file!,
+        snippet: `React detected: ${result.version}`,
+      });
     }
   }
 

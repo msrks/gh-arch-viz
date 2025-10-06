@@ -7,9 +7,18 @@ export const serverDetector: Detector = async ({ tree, read, current }) => {
   let server: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 
-  const pkgFile = await read("package.json");
-  const reqFile = await read("requirements.txt");
-  const pipFile = await read("Pipfile");
+  // Find all package.json, requirements.txt, and Pipfile in the repository
+  const packageJsonFiles = tree
+    .filter((f) => f.path?.endsWith("package.json") && f.type === "blob")
+    .map((f) => f.path!);
+
+  const requirementsTxtFiles = tree
+    .filter((f) => f.path?.endsWith("requirements.txt") && f.type === "blob")
+    .map((f) => f.path!);
+
+  const pipFiles = tree
+    .filter((f) => f.path?.endsWith("Pipfile") && f.type === "blob")
+    .map((f) => f.path!);
 
   // Check for Next.js (can be both client and server)
   const hasNextConfig = tree.some((f) =>
@@ -33,43 +42,73 @@ export const serverDetector: Detector = async ({ tree, read, current }) => {
     }
   }
 
-  // Check for Express.js
-  if (!server && pkgFile) {
-    try {
-      const pkg = JSON.parse(pkgFile);
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  // Check for Express.js in all package.json files
+  if (!server) {
+    for (const pkgPath of packageJsonFiles) {
+      const pkgFile = await read(pkgPath);
+      if (pkgFile) {
+        try {
+          const pkg = JSON.parse(pkgFile);
+          const deps = { ...pkg.dependencies, ...pkg.devDependencies };
 
-      if (deps.express) {
-        server = "Express.js";
-        proofs.push({
-          file: "package.json",
-          snippet: `Express.js detected: ${deps.express}`,
-        });
+          if (deps.express) {
+            server = "Express.js";
+            proofs.push({
+              file: pkgPath,
+              snippet: `Express.js detected: ${deps.express}`,
+            });
+            break;
+          }
+        } catch {
+          // ignore parse errors
+        }
       }
-    } catch {
-      // ignore parse errors
     }
   }
 
-  // Check for Flask
-  if (!server && (reqFile || pipFile)) {
-    if (reqFile && reqFile.includes("Flask")) {
-      server = "Flask";
-      proofs.push({ file: "requirements.txt", snippet: "Flask detected" });
-    } else if (pipFile && pipFile.includes("flask")) {
-      server = "Flask";
-      proofs.push({ file: "Pipfile", snippet: "Flask detected" });
+  // Check for Flask in all requirements.txt and Pipfile
+  if (!server) {
+    for (const reqPath of requirementsTxtFiles) {
+      const reqFile = await read(reqPath);
+      if (reqFile && reqFile.includes("Flask")) {
+        server = "Flask";
+        proofs.push({ file: reqPath, snippet: "Flask detected" });
+        break;
+      }
+    }
+
+    if (!server) {
+      for (const pipPath of pipFiles) {
+        const pipFile = await read(pipPath);
+        if (pipFile && pipFile.includes("flask")) {
+          server = "Flask";
+          proofs.push({ file: pipPath, snippet: "Flask detected" });
+          break;
+        }
+      }
     }
   }
 
-  // Check for FastAPI
-  if (!server && (reqFile || pipFile)) {
-    if (reqFile && reqFile.includes("fastapi")) {
-      server = "FastAPI";
-      proofs.push({ file: "requirements.txt", snippet: "FastAPI detected" });
-    } else if (pipFile && pipFile.includes("fastapi")) {
-      server = "FastAPI";
-      proofs.push({ file: "Pipfile", snippet: "FastAPI detected" });
+  // Check for FastAPI in all requirements.txt and Pipfile
+  if (!server) {
+    for (const reqPath of requirementsTxtFiles) {
+      const reqFile = await read(reqPath);
+      if (reqFile && reqFile.includes("fastapi")) {
+        server = "FastAPI";
+        proofs.push({ file: reqPath, snippet: "FastAPI detected" });
+        break;
+      }
+    }
+
+    if (!server) {
+      for (const pipPath of pipFiles) {
+        const pipFile = await read(pipPath);
+        if (pipFile && pipFile.includes("fastapi")) {
+          server = "FastAPI";
+          proofs.push({ file: pipPath, snippet: "FastAPI detected" });
+          break;
+        }
+      }
     }
   }
 
