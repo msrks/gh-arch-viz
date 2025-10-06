@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ScanAllButton } from "@/components/scan-all-button";
 import { ContributorsAvatars } from "@/components/contributors-avatars";
+import { LanguageIcon } from "@/components/language-icon";
 
 /**
  * Format date as relative time (e.g., "2 days ago", "3 months ago")
@@ -136,21 +137,17 @@ export default async function AppPage() {
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-2 flex-wrap items-center">
                         {repo.languages && (repo.languages as Array<{ name: string; percentage: number }>).length > 0 ? (
                           (repo.languages as Array<{ name: string; percentage: number }>).map((lang) => (
-                            <Badge
+                            <div
                               key={lang.name}
-                              variant="secondary"
-                              style={{
-                                backgroundColor: getLanguageColor(lang.name),
-                                color: getLanguageColor(lang.name) ? 'white' : undefined,
-                                borderColor: getLanguageColor(lang.name),
-                              }}
-                              title={`${lang.percentage}%`}
+                              className="flex items-center gap-1 text-sm"
+                              title={lang.name}
                             >
-                              {lang.name} ({lang.percentage}%)
-                            </Badge>
+                              <LanguageIcon language={lang.name} size={20} />
+                              <span className="font-medium">{lang.percentage}%</span>
+                            </div>
                           ))
                         ) : repo.primaryLanguage ? (
                           <Badge
