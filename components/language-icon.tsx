@@ -129,7 +129,29 @@ export function LanguageIcon({ language, size = 16 }: LanguageIconProps) {
         />
       </svg>
     ),
+    C: (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <path
+          d="M16 2.59l13.5 7.79v15.62L16 33.79 2.5 26V10.38L16 2.59z"
+          fill="#A8B9CC"
+          transform="scale(0.48) translate(0, -3)"
+        />
+        <path
+          d="M16 9.5c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5 6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5zm0 10.83c-2.39 0-4.33-1.94-4.33-4.33s1.94-4.33 4.33-4.33 4.33 1.94 4.33 4.33-1.94 4.33-4.33 4.33z"
+          fill="#fff"
+        />
+        <path
+          d="M18.5 14.5h-5v3h5v-3z"
+          fill="#A8B9CC"
+        />
+      </svg>
+    ),
   };
 
-  return icons[language] || null;
+  // Return icon if available, otherwise return text fallback
+  return icons[language] || (
+    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted" title={language}>
+      {language}
+    </span>
+  );
 }
