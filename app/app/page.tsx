@@ -117,6 +117,23 @@ function getFrameworkColor(framework: string): string | undefined {
   return colors[framework];
 }
 
+/**
+ * Shorten framework names for display
+ */
+function shortenFrameworkName(framework: string): string {
+  const shortenMap: Record<string, string> = {
+    "AWS Cognito": "Cognito",
+    "AWS RDS": "RDS",
+    "AWS DynamoDB": "DynamoDB",
+    "AWS Aurora": "Aurora",
+    "Firebase Hosting": "Firebase",
+    "Firebase Auth": "Firebase",
+    "Firebase Storage": "Firebase",
+    "Vercel Blob": "Vercel",
+  };
+  return shortenMap[framework] || framework;
+}
+
 export default async function AppPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -256,8 +273,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.client),
                             borderWidth: "2px",
                           }}
+                          title={repo.client}
                         >
-                          {repo.client}
+                          {shortenFrameworkName(repo.client)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -272,8 +290,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.server),
                             borderWidth: "2px",
                           }}
+                          title={repo.server}
                         >
-                          {repo.server}
+                          {shortenFrameworkName(repo.server)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -288,8 +307,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.db),
                             borderWidth: "2px",
                           }}
+                          title={repo.db}
                         >
-                          {repo.db}
+                          {shortenFrameworkName(repo.db)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -304,8 +324,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.storage),
                             borderWidth: "2px",
                           }}
+                          title={repo.storage}
                         >
-                          {repo.storage}
+                          {shortenFrameworkName(repo.storage)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -320,8 +341,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.hosting),
                             borderWidth: "2px",
                           }}
+                          title={repo.hosting}
                         >
-                          {repo.hosting}
+                          {shortenFrameworkName(repo.hosting)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -336,8 +358,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.auth),
                             borderWidth: "2px",
                           }}
+                          title={repo.auth}
                         >
-                          {repo.auth}
+                          {shortenFrameworkName(repo.auth)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
@@ -352,8 +375,9 @@ export default async function AppPage() {
                             borderColor: getFrameworkColor(repo.ai),
                             borderWidth: "2px",
                           }}
+                          title={repo.ai}
                         >
-                          {repo.ai}
+                          {shortenFrameworkName(repo.ai)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
