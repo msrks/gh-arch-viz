@@ -68,6 +68,10 @@ export const repoInventory = pgTable(
     url: text("url").notNull(),
 
     primaryLanguage: text("primary_language"),
+    languages: jsonb("languages").$type<Array<{
+      name: string;
+      percentage: number;
+    }>>(),
     frameworks: jsonb("frameworks").$type<string[]>().default([]),
     buildTools: jsonb("build_tools").$type<string[]>().default([]),
     packageManagers: jsonb("package_managers").$type<string[]>().default([]),

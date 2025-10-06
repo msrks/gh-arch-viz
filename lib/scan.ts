@@ -2,7 +2,7 @@ import type { Octokit } from "@octokit/rest";
 import { db } from "@/lib/db";
 import { repoInventory } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getRepoTree, getText, listRepoContributors } from "./github";
+import { getRepoTree, getText, listRepoContributors, listRepoLanguages } from "./github";
 import { createId } from "@paralleldrive/cuid2";
 
 export type DetectorContext = {
@@ -61,6 +61,7 @@ export function initInventory(meta: {
     missingSignals: [],
     policyStatus: null,
     policyViolations: null,
+    languages: null,
     contributors: null,
     contributorsCount: 0,
     contributorsUpdatedAt: null,
@@ -163,6 +164,19 @@ export async function scanOneRepo(
   // Update GitHub repo metadata
   if (meta.pushedAt) inv.repoPushedAt = meta.pushedAt;
   if (meta.updatedAt) inv.repoUpdatedAt = meta.updatedAt;
+
+  // Fetch languages information (20% threshold)
+  try {
+    const languages = await listRepoLanguages(octokit, owner, repo, 20);
+    inv.languages = languages;
+    // Update primaryLanguage to the most used language (first in sorted array)
+    if (languages.length > 0) {
+      inv.primaryLanguage = languages[0].name;
+    }
+  } catch (error) {
+    console.error(`Failed to fetch languages for ${owner}/${repo}:`, error);
+    // Keep existing languages data if fetch fails
+  }
 
   // Fetch contributors information
   try {

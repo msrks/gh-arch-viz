@@ -190,6 +190,47 @@ export async function getMemberRole(
 }
 
 /**
+ * List repository languages (only those with >= threshold percentage)
+ */
+export async function listRepoLanguages(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  threshold: number = 20
+): Promise<Array<{ name: string; percentage: number }>> {
+  try {
+    const { data } = await octokit.rest.repos.listLanguages({
+      owner,
+      repo,
+    });
+
+    // Calculate total bytes
+    const totalBytes = Object.values(data).reduce((sum, bytes) => sum + bytes, 0);
+
+    if (totalBytes === 0) {
+      return [];
+    }
+
+    // Calculate percentages and filter by threshold
+    const languages = Object.entries(data)
+      .map(([name, bytes]) => ({
+        name,
+        percentage: Math.round((bytes / totalBytes) * 100),
+      }))
+      .filter((lang) => lang.percentage >= threshold)
+      .sort((a, b) => b.percentage - a.percentage);
+
+    return languages;
+  } catch (error: any) {
+    if (error.status === 404 || error.status === 403) {
+      console.warn(`Could not fetch languages for ${owner}/${repo}:`, error.message);
+      return [];
+    }
+    throw error;
+  }
+}
+
+/**
  * List repository contributors (top 10 only)
  */
 export async function listRepoContributors(

@@ -136,18 +136,35 @@ export default async function AppPage() {
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      {repo.primaryLanguage && (
-                        <Badge
-                          variant="secondary"
-                          style={{
-                            backgroundColor: getLanguageColor(repo.primaryLanguage),
-                            color: getLanguageColor(repo.primaryLanguage) ? 'white' : undefined,
-                            borderColor: getLanguageColor(repo.primaryLanguage),
-                          }}
-                        >
-                          {repo.primaryLanguage}
-                        </Badge>
-                      )}
+                      <div className="flex gap-1 flex-wrap">
+                        {repo.languages && (repo.languages as Array<{ name: string; percentage: number }>).length > 0 ? (
+                          (repo.languages as Array<{ name: string; percentage: number }>).map((lang) => (
+                            <Badge
+                              key={lang.name}
+                              variant="secondary"
+                              style={{
+                                backgroundColor: getLanguageColor(lang.name),
+                                color: getLanguageColor(lang.name) ? 'white' : undefined,
+                                borderColor: getLanguageColor(lang.name),
+                              }}
+                              title={`${lang.percentage}%`}
+                            >
+                              {lang.name} ({lang.percentage}%)
+                            </Badge>
+                          ))
+                        ) : repo.primaryLanguage ? (
+                          <Badge
+                            variant="secondary"
+                            style={{
+                              backgroundColor: getLanguageColor(repo.primaryLanguage),
+                              color: getLanguageColor(repo.primaryLanguage) ? 'white' : undefined,
+                              borderColor: getLanguageColor(repo.primaryLanguage),
+                            }}
+                          >
+                            {repo.primaryLanguage}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
