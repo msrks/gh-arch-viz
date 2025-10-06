@@ -133,3 +133,58 @@ export async function checkRateLimit(octokit: Octokit) {
     limit: data.rate.limit,
   };
 }
+
+/**
+ * List all members in an organization
+ */
+export async function listOrgMembers(
+  octokit: Octokit,
+  org: string
+) {
+  const members = await octokit.paginate(octokit.rest.orgs.listMembers, {
+    org,
+    per_page: 100,
+  });
+
+  return members.map((m) => ({
+    username: m.login,
+    userId: m.id,
+    avatarUrl: m.avatar_url,
+    profileUrl: m.html_url,
+  }));
+}
+
+/**
+ * Get user details including name
+ */
+export async function getUserDetails(
+  octokit: Octokit,
+  username: string
+) {
+  const { data } = await octokit.rest.users.getByUsername({
+    username,
+  });
+
+  return {
+    name: data.name,
+    company: data.company,
+    location: data.location,
+    bio: data.bio,
+  };
+}
+
+/**
+ * Get member role in organization
+ */
+export async function getMemberRole(
+  octokit: Octokit,
+  org: string,
+  username: string
+): Promise<"admin" | "member"> {
+  const { data } = await octokit.rest.orgs.getMembershipForUser({
+    org,
+    username,
+  });
+
+  return data.role as "admin" | "member";
+}

@@ -99,3 +99,29 @@ export const repoInventory = pgTable(
     repoOrgIdUnique: uniqueIndex("repo_org_id_unique").on(table.org, table.repoId),
   })
 );
+
+export const orgMembers = pgTable(
+  "org_members",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    org: text("org").notNull(),
+    username: text("username").notNull(),
+    userId: integer("user_id").notNull(),
+    name: text("name"),
+    avatarUrl: text("avatar_url").notNull(),
+    profileUrl: text("profile_url").notNull(),
+    role: text("role").notNull(), // "admin" | "member"
+
+    // Statistics (cached)
+    repositoryCount: integer("repository_count").default(0),
+    lastActiveAt: timestamp("last_active_at"),
+
+    // Metadata
+    lastSyncedAt: timestamp("last_synced_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgUsernameUnique: uniqueIndex("org_username_unique").on(table.org, table.username),
+  })
+);

@@ -88,6 +88,9 @@ export default async function AppPage() {
           </div>
           <div className="flex gap-2">
             <ScanAllButton />
+            <Link href="/members">
+              <Button variant="secondary">View Members</Button>
+            </Link>
             <Link href="/insights">
               <Button variant="secondary">View Insights</Button>
             </Link>

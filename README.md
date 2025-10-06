@@ -22,6 +22,7 @@
 - **🔍 Searchable Inventory** - Browse and filter all repositories by technology stack
 - **📝 Evidence Tracking** - View exact files and snippets used for detection
 - **📊 Visual Insights** - Charts and graphs showing technology distribution
+- **👥 Member Management** - View organization members with roles, avatars, and activity
 - **⚡ Fast Scanning** - Batch parallel processing (dev) or QStash background jobs (prod)
 - **🕒 Smart Sorting** - Repositories sorted by last push date with "X days ago" display
 - **🎨 Modern UI** - Built with shadcn/ui, Tailwind CSS v4, and GitHub language colors
@@ -154,7 +155,13 @@ Open [http://localhost:3000](http://localhost:3000)
    - Click on a repository name to see detailed detection results
    - View "Evidence" to see which files were used for detection
 
-4. **View Insights**
+4. **View Members**
+
+   - Click "View Members" to see organization members
+   - Click "Sync Members" to fetch latest member data from GitHub
+   - View member roles (Admin/Member), avatars, and activity
+
+5. **View Insights**
    - Click "View Insights" to see charts and graphs
    - Analyze technology distribution across your organization
 

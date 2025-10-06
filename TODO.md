@@ -222,6 +222,81 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
 ---
 
+## 👥 Phase 5: メンバー管理機能（新規）
+
+### 5.1 データベーススキーマ
+
+- [x] **org_members テーブル作成**
+  - [x] スキーマ定義 (`lib/db/schema.ts`)
+    - `id`, `org`, `username`, `userId`, `name`, `avatarUrl`, `profileUrl`
+    - `role` (admin/member)
+    - `repositoryCount`, `lastActiveAt`
+    - `lastSyncedAt`, `createdAt`, `updatedAt`
+  - [x] ユニークインデックス設定 (`org` + `username`)
+  - [x] `pnpm db:push` でスキーマ反映
+
+### 5.2 GitHub API 統合
+
+- [x] **メンバー取得関数**
+  - [x] `lib/github.ts` に `listOrgMembers()` 追加
+    - `/orgs/{org}/members` API 呼び出し
+    - ページネーション対応（`octokit.paginate`）
+  - [x] `getUserDetails()` 関数追加
+    - `/users/{username}` で詳細情報取得
+  - [x] `getMemberRole()` 関数追加
+    - `/orgs/{org}/memberships/{username}` でロール取得
+
+### 5.3 API エンドポイント
+
+- [x] **GET `/api/members`**
+  - [x] データベースからメンバー一覧取得
+  - [x] `lastActiveAt` でソート（降順）
+  - [x] 認証チェック（Better Auth セッション）
+
+- [x] **POST `/api/members/sync`**
+  - [x] GitHub API からメンバー一覧取得
+  - [x] 各メンバーの詳細情報・ロールを取得
+  - [x] データベースに upsert（既存メンバーは更新）
+  - [x] バッチ処理（10メンバーずつ）
+
+### 5.4 UI 実装
+
+- [x] **`/app/members/page.tsx`**
+  - [x] サーバーコンポーネントとして実装
+  - [x] データベースからメンバー一覧取得
+  - [x] テーブルレイアウト
+    - Avatar (画像)
+    - Username (GitHub ユーザー名)
+    - Name (表示名)
+    - Role (Admin/Member バッジ)
+    - Repositories (リポジトリ数)
+    - Last Active (最終アクティビティ、相対時間表示)
+
+- [x] **`components/sync-members-button.tsx`**
+  - [x] クライアントコンポーネント
+  - [x] "Sync Members" ボタン
+  - [x] `/api/members/sync` を呼び出し
+  - [x] ローディング状態表示
+
+- [x] **ナビゲーション統合**
+  - [x] リポジトリ一覧ページに "View Members" ボタン追加
+  - [x] メンバーページに "View Repositories" ボタン追加
+
+### 5.5 拡張機能（今後の改善）
+
+- [ ] **統計情報の追加**
+  - [ ] リポジトリ数のカウント（実際のcontribution数）
+  - [ ] 最終アクティビティの取得・表示（GitHub API連携）
+
+- [ ] **検索・フィルタ**
+  - [ ] ユーザー名・表示名検索
+  - [ ] ロールフィルタ (Admin/Member)
+
+- [ ] **ページネーション**
+  - [ ] 大規模組織対応
+
+---
+
 ## 🔍 テスト・品質保証
 
 - [ ] **手動テスト項目**
@@ -298,10 +373,11 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
 **次のステップ**:
 
-1. Upstash QStash アカウント作成・トークン取得
-2. 本番環境でのテスト
-3. パフォーマンス最適化（必要に応じて）
+1. ~~Upstash QStash アカウント作成・トークン取得~~ ✅
+2. メンバー管理機能の拡張（統計情報、検索・フィルタ、ページネーション）
+3. 本番環境でのテスト
+4. パフォーマンス最適化（必要に応じて）
 
 ---
 
-**進捗率**: 約 85/100 項目完了 (85%)
+**進捗率**: 約 95/105 項目完了 (90%)
