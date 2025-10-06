@@ -68,6 +68,67 @@ export function LanguageIcon({ language, size = 16 }: LanguageIconProps) {
         <circle cx="23" cy="16" r="2" fill="#fff" />
       </svg>
     ),
+    Vue: (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <path d="M19.197 2L16 7.393 12.803 2H2l14 24.25L30 2z" fill="#41B883" />
+        <path d="M19.197 2L16 7.393 12.803 2H6.594l9.406 16.291L25.406 2z" fill="#35495E" />
+      </svg>
+    ),
+    HCL: (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="4" fill="#844FBA" />
+        <path
+          d="M16 6l-8 4.62v9.24L16 24.62l8-4.62v-9.24L16 6zm6 12.5l-6 3.47-6-3.47v-6.94l6-3.47 6 3.47v6.94z"
+          fill="#fff"
+        />
+        <path
+          d="M16 11.06l-3 1.73v3.47l3 1.73 3-1.73v-3.47l-3-1.73z"
+          fill="#fff"
+        />
+      </svg>
+    ),
+    HTML: (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <path
+          d="M5.902 27.201L3.655 2h24.69l-2.25 25.197L15.985 30 5.902 27.201z"
+          fill="#E34F26"
+        />
+        <path d="M16 27.858l8.17-2.265 1.922-21.532H16v23.797z" fill="#EF652A" />
+        <path
+          d="M16 13.191h4.09l.282-3.165H16V6.935h7.75l-.074.829-.759 8.518H16v-3.091z"
+          fill="#fff"
+        />
+        <path
+          d="M16.019 21.218l-.014.004-3.442-.93-.22-2.465H9.24l.433 4.853 6.331 1.758.015-.004v-3.216z"
+          fill="#EBEBEB"
+        />
+        <path
+          d="M19.827 16.151l-.372 4.139-3.447.93v3.216l6.336-1.756.047-.522.537-6.007h-3.101z"
+          fill="#fff"
+        />
+        <path
+          d="M16.011 6.935v3.091h-7.386l-.062-.695-.141-1.567-.074-.829h7.663zm-.008 6.256v3.091h-3.399l-.062-.695-.14-1.566-.074-.83h3.675z"
+          fill="#EBEBEB"
+        />
+      </svg>
+    ),
+    "C++": (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <path
+          d="M16 2.59l13.5 7.79v15.62L16 33.79 2.5 26V10.38L16 2.59z"
+          fill="#00599C"
+          transform="scale(0.48) translate(0, -3)"
+        />
+        <path
+          d="M16 9.5c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5 6.5-2.91 6.5-6.5-2.91-6.5-6.5-6.5zm0 10.83c-2.39 0-4.33-1.94-4.33-4.33s1.94-4.33 4.33-4.33 4.33 1.94 4.33 4.33-1.94 4.33-4.33 4.33z"
+          fill="#fff"
+        />
+        <path
+          d="M20 15h-1v-1h-1v1h-1v1h1v1h1v-1h1v-1zm4 0h-1v-1h-1v1h-1v1h1v1h1v-1h1v-1z"
+          fill="#00599C"
+        />
+      </svg>
+    ),
   };
 
   return icons[language] || null;
