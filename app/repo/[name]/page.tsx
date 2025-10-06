@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { ArrowLeft, ExternalLink, FileCode } from "lucide-react";
 import Link from "next/link";
 
-export default async function RepoDetailPage({ params }: { params: { name: string } }) {
+export default async function RepoDetailPage({ params }: { params: Promise<{ name: string }> }) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -20,7 +20,8 @@ export default async function RepoDetailPage({ params }: { params: { name: strin
     redirect("/");
   }
 
-  const repoName = decodeURIComponent(params.name);
+  const { name } = await params;
+  const repoName = decodeURIComponent(name);
   const repo = await db.query.repoInventory.findFirst({
     where: eq(repoInventory.repoName, repoName),
   });
