@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/middleware/auth";
+import { makeOctokit, listTeamRepos } from "@/lib/github";
+import { scanOneRepo } from "@/lib/scan";
+import { allDetectors } from "@/lib/detectors";
+import { db } from "@/lib/db";
+import { repoInventory } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+/**
+ * POST /api/repo/[id]/scan
+ * Trigger single repository scan
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const authResult = await requireAuth(request);
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
+  const repoId = params.id;
+
+  // Get GitHub token
+  const githubToken = process.env.GITHUB_TOKEN; // Temporary
+  if (!githubToken) {
+    return NextResponse.json(
+      { error: "GitHub token not found" },
+      { status: 401 }
+    );
+  }
+
+  const org = process.env.ALLOWED_GH_ORG!;
+
+  try {
+    // Find repository in inventory
+    const repo = await db.query.repoInventory.findFirst({
+      where: eq(repoInventory.id, repoId),
+    });
+
+    if (!repo) {
+      return NextResponse.json({ error: "Repository not found" }, { status: 404 });
+    }
+
+    const octokit = makeOctokit(githubToken);
+
+    // Scan the repository
+    const result = await scanOneRepo(
+      octokit,
+      org,
+      repo.repoName,
+      {
+        org: repo.org,
+        repoId: repo.repoId,
+        name: repo.repoName,
+        url: repo.url,
+        defaultBranch: repo.defaultBranch,
+        visibility: repo.visibility,
+        primaryLanguage: repo.primaryLanguage,
+      },
+      allDetectors
+    );
+
+    return NextResponse.json({
+      message: "Scan completed",
+      data: result,
+    });
+  } catch (error: any) {
+    console.error(`Failed to scan repository ${repoId}:`, error);
+    return NextResponse.json(
+      { error: "Scan failed", message: error.message },
+      { status: 500 }
+    );
+  }
+}

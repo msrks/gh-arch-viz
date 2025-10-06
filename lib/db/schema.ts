@@ -5,6 +5,9 @@ import {
   text,
   timestamp,
   varchar,
+  jsonb,
+  real,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -63,3 +66,43 @@ export const todos = pgTable("todos", {
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
 });
+
+export const repoInventory = pgTable(
+  "repo_inventory",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    org: text("org").notNull(),
+    repoId: integer("repo_id").notNull(),
+    repoName: text("repo_name").notNull(),
+    defaultBranch: text("default_branch").notNull(),
+    visibility: text("visibility").notNull(), // public/private/internal
+    url: text("url").notNull(),
+
+    primaryLanguage: text("primary_language"),
+    frameworks: jsonb("frameworks").$type<string[]>().default([]),
+    buildTools: jsonb("build_tools").$type<string[]>().default([]),
+    packageManagers: jsonb("package_managers").$type<string[]>().default([]),
+    container: jsonb("container").$type<string[]>().default([]),
+    ciCd: jsonb("ci_cd").$type<string[]>().default([]),
+    deployTargets: jsonb("deploy_targets").$type<string[]>().default([]),
+    infraAsCode: jsonb("infra_as_code").$type<string[]>().default([]),
+    databases: jsonb("databases").$type<string[]>().default([]),
+    messaging: jsonb("messaging").$type<string[]>().default([]),
+    testing: jsonb("testing").$type<string[]>().default([]),
+    lintFormat: jsonb("lint_format").$type<string[]>().default([]),
+
+    lastScannedAt: timestamp("last_scanned_at"),
+    detectionScore: real("detection_score"),
+    evidence: jsonb("evidence").$type<Record<string, any>>().default({}),
+    missingSignals: jsonb("missing_signals").$type<string[]>().default([]),
+
+    policyStatus: text("policy_status"), // compliant / drift / unknown
+    policyViolations: jsonb("policy_violations").$type<Record<string, any>>(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    repoOrgIdUnique: uniqueIndex("repo_org_id_unique").on(table.org, table.repoId),
+  })
+);

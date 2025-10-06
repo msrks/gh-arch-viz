@@ -1,165 +1,166 @@
-# Next.js Starter Template
+# gh-arch-viz
 
-A production-ready Next.js 15 starter template with authentication, database, and modern tooling. Perfect for building full-stack web applications quickly and securely.
+**GitHub Architecture Visualizer** - Automatically detect and visualize your team's repository technology stacks.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmsrks%2Fnextjs-starter&env=DATABASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,NEXT_PUBLIC_APP_URL&envDescription=Environment%20variables%20needed%20for%20the%20application&envLink=https%3A%2F%2Fgithub.com%2Fmsrks%2Fnextjs-starter%23environment-variables)
+## 📋 Overview
+
+`gh-arch-viz` scans your GitHub organization's repositories and automatically detects:
+
+- **Frameworks** (Next.js, React, etc.)
+- **Build Tools** (Vite, Webpack, Turbopack, etc.)
+- **Package Managers** (pnpm, npm, yarn)
+- **CI/CD** (GitHub Actions, etc.)
+- **Deployment Targets** (Vercel, etc.)
+- **Container Technologies** (Docker, Docker Compose)
+- **Infrastructure as Code** (Terraform, etc.)
+- **Databases, Testing Frameworks, Linters**, and more
 
 ## ✨ Features
 
-- **🚀 Next.js 15** - Latest App Router with Turbopack for fast development
-- **🔐 Authentication** - Secure email/password auth with [Better Auth](https://better-auth.com)
-- **💾 Database** - PostgreSQL with [Neon](https://neon.tech) serverless database
-- **🗄️ ORM** - Type-safe database queries with [Drizzle ORM](https://orm.drizzle.team)
-- **🎨 Styling** - Beautiful UI with [Tailwind CSS 4](https://tailwindcss.com)
-- **📱 Responsive** - Mobile-first responsive design
-- **🔒 Security** - Protected routes with middleware authentication
-- **⚡ Fast** - Optimized with React Server Components and streaming
-- **📦 Type Safe** - Full TypeScript support throughout
+- **🔒 Org/Team Restricted Access** - Only members of your configured GitHub org and team can sign in
+- **🤖 Automatic Detection** - Scans repository files to detect technologies with evidence-based scoring
+- **🔍 Searchable Inventory** - Browse and filter all repositories by technology stack
+- **📝 Evidence Tracking** - View exact files and snippets used for detection
+- **📊 Visual Insights** - Charts and graphs showing technology distribution
+- **⚡ Fast Scanning** - Concurrent repository scanning with rate limit handling
+- **🎨 Modern UI** - Built with shadcn/ui and Tailwind CSS v4
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS 4
-- **Backend:** Next.js API Routes, Server Actions
-- **Database:** PostgreSQL (Neon), Drizzle ORM
-- **Authentication:** Better Auth
-- **Deployment:** Vercel-ready
-- **Package Manager:** pnpm
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, shadcn/ui, Tailwind CSS v4
+- **Backend**: Next.js Server Actions + API Routes
+- **Database**: PostgreSQL (Neon) + Drizzle ORM
+- **Auth**: Better Auth (GitHub OAuth)
+- **Visualization**: Recharts
+- **Package Manager**: pnpm
 
-## 🚀 One-Click Deploy
+## 📦 Prerequisites
 
-Deploy this template to Vercel with one click:
+- Node.js 20+
+- pnpm 9+
+- PostgreSQL database (recommend [Neon](https://neon.tech))
+- GitHub OAuth App credentials
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmsrks%2Fnextjs-starter&env=DATABASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,NEXT_PUBLIC_APP_URL&envDescription=Environment%20variables%20needed%20for%20the%20application&envLink=https%3A%2F%2Fgithub.com%2Fmsrks%2Fnextjs-starter%23environment-variables)
-
-After deployment, you'll need to:
-1. **Set up Neon Database** - Create a [Neon](https://neon.tech) account and get your `DATABASE_URL`
-2. **Generate Auth Secret** - Create a secure secret for `BETTER_AUTH_SECRET`
-3. **Update Environment Variables** - Add the variables in your Vercel dashboard
-4. **Push Database Schema** - Run `pnpm drizzle-kit push` locally or in Vercel's terminal
-
-## 🛠️ Manual Setup
+## 🔧 Setup
 
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/msrks/nextjs-starter.git
-cd nextjs-starter
+git clone <your-repo-url>
+cd gh-arch-viz
 pnpm install
 ```
 
-### 2. Environment Setup
+### 2. Create GitHub OAuth App
 
-Copy the environment variables template:
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Fill in the details:
+   - **Application name**: gh-arch-viz
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+4. Click **Register application**
+5. Copy the **Client ID** and generate a **Client Secret**
+
+### 3. Set up Neon PostgreSQL
+
+1. Create a free account at [Neon](https://neon.tech)
+2. Create a new project
+3. Copy the connection string (starts with `postgresql://`)
+
+### 4. Configure environment variables
+
+Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Update `.env` with your configuration:
-
-```env
-# Database - Get from Neon Dashboard
-DATABASE_URL="postgresql://username:password@host.neon.tech/database_name?sslmode=require"
-
-# Authentication - Generate secure secret
-BETTER_AUTH_SECRET="your-very-secure-secret-key"
-BETTER_AUTH_URL="http://localhost:3000"
-
-# App URL (Client-side) - Important for production deployment
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-### 3. Database Setup
-
-Create and push your database schema:
+Edit `.env` and fill in:
 
 ```bash
-pnpm drizzle-kit push
+# Database
+DATABASE_URL="postgresql://user:pass@host.neon.tech/db?sslmode=require"
+
+# Better Auth
+BETTER_AUTH_SECRET="<generate-a-long-random-string>"
+BETTER_AUTH_URL="http://localhost:3000"
+
+# GitHub OAuth
+GITHUB_CLIENT_ID="<your-github-oauth-client-id>"
+GITHUB_CLIENT_SECRET="<your-github-oauth-client-secret>"
+
+# GitHub Organization & Team
+ALLOWED_GH_ORG="<your-org-name>"
+ALLOWED_GH_TEAM_SLUG="<your-team-slug>"
 ```
 
-### 4. Start Development
+**Note**: To find your team slug, go to your GitHub org → Teams → click on your team. The URL will be `github.com/orgs/YOUR_ORG/teams/YOUR_TEAM_SLUG`.
+
+### 5. Run database migrations
+
+```bash
+pnpm db:push
+```
+
+### 6. Start the development server
 
 ```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) - you'll be redirected to sign up!
+Open [http://localhost:3000](http://localhost:3000)
 
-## 🔧 Environment Variables
+## 📖 Usage
 
-This template requires the following environment variables:
+### First Time Setup
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string from Neon | `postgresql://user:pass@host.neon.tech/db?sslmode=require` |
-| `BETTER_AUTH_SECRET` | Secret key for session encryption | `your-very-secure-secret-key` |
-| `BETTER_AUTH_URL` | Base URL for your application (server-side) | `http://localhost:3000` (dev) or `https://yourdomain.com` (prod) |
-| `NEXT_PUBLIC_APP_URL` | Base URL for client-side API calls | `http://localhost:3000` (dev) or `https://yourdomain.com` (prod) |
+1. **Sign in with GitHub**
 
-### Getting Your Environment Variables
+   - Click "Sign in with GitHub" on the landing page
+   - Authorize the app with `read:org` and `repo` scopes
+   - Only members of your configured org/team will be allowed access
 
-1. **DATABASE_URL**: 
-   - Create a [Neon](https://neon.tech) account
-   - Create a new project
-   - Copy the connection string from your dashboard
+2. **Scan Repositories**
 
-2. **BETTER_AUTH_SECRET**: 
-   - Generate a secure random string (32+ characters)
-   - You can use: `openssl rand -base64 32`
+   - Click "Scan All Repositories" on the inventory page
+   - The app will list all repositories accessible to your team and scan them
 
-3. **BETTER_AUTH_URL**: 
-   - Use `http://localhost:3000` for development
-   - Use your actual domain for production
+3. **Browse Inventory**
 
-4. **NEXT_PUBLIC_APP_URL**: 
-   - Use `http://localhost:3000` for development
-   - Use your actual domain for production (e.g., `https://yourdomain.com`)
-   - **Important**: This must be set correctly in production to avoid authentication issues
+   - View the table of all scanned repositories
+   - Click on a repository name to see detailed detection results
+   - View "Evidence" to see which files were used for detection
 
-## 📁 Project Structure
+4. **View Insights**
+   - Click "View Insights" to see charts and graphs
+   - Analyze technology distribution across your organization
 
-```text
-├── app/                    # Next.js App Router
-│   ├── api/auth/          # Authentication API routes
-│   ├── auth/              # Auth pages (sign-in, sign-up)
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Home page (protected)
-├── components/            # React components
-│   ├── auth/              # Authentication components
-│   ├── todo-form.tsx      # Example todo form
-│   ├── todo-item.tsx      # Example todo item
-│   └── todo-list.tsx      # Example todo list
-├── lib/                   # Utility libraries
-│   ├── actions/           # Server actions
-│   ├── db/                # Database configuration
-│   │   ├── index.ts       # Database client
-│   │   └── schema.ts      # Database schema
-│   ├── auth.ts            # Auth configuration
-│   ├── auth-client.ts     # Client-side auth
-│   └── utils.ts           # Utilities
-├── middleware.ts          # Route protection
-├── drizzle.config.ts      # Drizzle configuration
-└── .env.example           # Environment variables template
-```
+### Rescanning
 
-## 🗄️ Database Schema
+- **Single Repository**: Navigate to repo detail page and click "Rescan"
+- **All Repositories**: On the inventory page, click "Scan All Repositories"
 
-The starter includes a complete authentication schema and example todos:
+## 🔒 Security & Permissions
 
-- **Users** - User accounts with email/password
-- **Sessions** - Secure session management
-- **Accounts** - Auth provider accounts
-- **Verification** - Email verification tokens
-- **Todos** - Example user-specific data
+### Required GitHub Scopes
 
-## 🔐 Authentication Features
+- `read:org` - To verify organization and team membership
+- `repo` - To read repository files for technology detection
 
-- **Email/Password** - Secure authentication with Better Auth
-- **Session Management** - HTTP-only cookies with CSRF protection
-- **Route Protection** - Middleware-based route guarding
-- **User-Specific Data** - All data scoped to authenticated users
-- **Sign In/Up/Out** - Complete auth flow with error handling
+### Access Control
+
+- Only users who are active members of both:
+  1. The configured GitHub organization (`ALLOWED_GH_ORG`)
+  2. The configured team within that org (`ALLOWED_GH_TEAM_SLUG`)
+- Membership is verified on each sign-in
+- Session TTL can be configured via `SESSION_TTL_MINUTES`
+
+### Recommendations
+
+- **Production**: Consider implementing a GitHub App for better security
+- **Tokens**: Access tokens are session-based
+- **Rate Limits**: App respects GitHub API rate limits (5000 req/hour)
 
 ## 🚀 Development
 
@@ -170,60 +171,74 @@ pnpm dev          # Start development server
 pnpm build        # Build for production
 pnpm start        # Start production server
 pnpm lint         # Run ESLint
+pnpm db:generate  # Generate Drizzle migrations
+pnpm db:push      # Push schema changes to database
+pnpm db:studio    # Open Drizzle Studio
 ```
 
-### Database Commands
+## 🚢 Deployment
 
-```bash
-pnpm drizzle-kit push       # Push schema changes
-pnpm drizzle-kit studio     # Open Drizzle Studio
-```
-
-## 📦 Deployment
-
-### Option 1: One-Click Deploy (Recommended)
-
-Use the "Deploy with Vercel" button at the top of this README for instant deployment.
-
-### Option 2: Manual Deploy
+### Vercel (Recommended)
 
 1. Push your code to GitHub
-2. Import your repository in [Vercel](https://vercel.com)
-3. Add your environment variables in Vercel dashboard:
-   - `DATABASE_URL` - Your Neon database connection string
-   - `BETTER_AUTH_SECRET` - A secure random string
-   - `BETTER_AUTH_URL` - Your production domain (e.g., `https://yourdomain.com`)
-   - `NEXT_PUBLIC_APP_URL` - Your production domain (e.g., `https://yourdomain.com`)
-4. Deploy!
+2. Import the project in [Vercel](https://vercel.com)
+3. Add all environment variables from `.env`
+4. Update `BETTER_AUTH_URL` and GitHub OAuth callback URL to your production domain
+5. Deploy
+6. Run `pnpm db:push` to sync database schema
 
-### Post-Deployment Steps
+### Environment Variables for Production
 
-After deployment, make sure to:
+Make sure to set these in your hosting platform:
 
-1. **Push your database schema**: Run `pnpm drizzle-kit push`
-2. **Test authentication**: Try signing up/in on your live site
-3. **Verify database connection**: Check that data persists correctly
+- `DATABASE_URL`
+- `BETTER_AUTH_SECRET` (use a strong random string)
+- `BETTER_AUTH_URL` (your production URL)
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `ALLOWED_GH_ORG`
+- `ALLOWED_GH_TEAM_SLUG`
 
-## 🤝 Contributing
+## 🐛 Troubleshooting
 
-This is a starter template - feel free to:
+### "Not authorized: must be a member of the organization"
 
-- Fork and customize for your needs
-- Submit improvements via pull requests
-- Report issues or suggest features
+- Verify that your GitHub user is a member of the configured org and team
+- Check that `ALLOWED_GH_ORG` and `ALLOWED_GH_TEAM_SLUG` are correct
+- Ensure the team is not set to "Secret" visibility (must be "Visible")
 
-## 📚 Learn More
+### GitHub API Rate Limit
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Better Auth Documentation](https://better-auth.com/docs)
-- [Drizzle ORM Documentation](https://orm.drizzle.team)
-- [Neon Documentation](https://neon.tech/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- Authenticated requests have a limit of 5000/hour
+- The app includes retry logic with exponential backoff
+- For large orgs, consider implementing background job queues
 
-## 📄 License
+## 🗺 Roadmap
 
-MIT License - feel free to use this template for your projects!
+- [ ] **Policy Engine**: Define and enforce technology standards
+- [ ] **Scheduled Scans**: Automatic daily/weekly rescans
+- [ ] **GitHub App**: Replace OAuth with GitHub App
+- [ ] **Notifications**: Alert on policy violations
+- [ ] **Export**: CSV/JSON export of inventory
+- [ ] **More Detectors**: Python, Go, Rust, Kubernetes, AWS, GCP
+- [ ] **Custom Rules**: User-defined detection patterns
+- [ ] **Historical Tracking**: Track technology changes over time
+
+## 📝 License
+
+MIT
+
+## 🙏 Credits
+
+Built with:
+
+- [Next.js](https://nextjs.org)
+- [Better Auth](https://www.better-auth.com)
+- [Drizzle ORM](https://orm.drizzle.team)
+- [shadcn/ui](https://ui.shadcn.com)
+- [Recharts](https://recharts.org)
+- [Octokit](https://github.com/octokit/octokit.js)
 
 ---
 
-Built with ❤️ using modern web technologies
+**Questions or issues?** Please open an issue on GitHub.
