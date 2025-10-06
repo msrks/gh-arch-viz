@@ -4,6 +4,7 @@ import { repoInventory } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getRepoTree, getText, listRepoContributors, listRepoLanguages } from "./github";
 import { createId } from "@paralleldrive/cuid2";
+import { batchReadFiles, createCachedReader } from "./batch-reader";
 
 export type DetectorContext = {
   tree: { path?: string; type?: string }[];
@@ -125,7 +126,12 @@ export async function scanOneRepo(
 ) {
   // Get repository file tree
   const tree = await getRepoTree(octokit, owner, repo, meta.defaultBranch);
-  const read = (path: string) => getText(octokit, owner, repo, path);
+
+  // Batch read common files to reduce API calls
+  const fileCache = await batchReadFiles(octokit, owner, repo, tree);
+  const read = createCachedReader(fileCache, octokit, owner, repo);
+
+  console.log(`[Batch Reader] Pre-fetched ${fileCache.size} files for ${owner}/${repo}`);
 
   // Check for existing inventory
   const existing = await db.query.repoInventory.findFirst({
