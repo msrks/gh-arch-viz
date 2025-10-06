@@ -65,6 +65,13 @@ export function initInventory(meta: {
     contributors: null,
     contributorsCount: 0,
     contributorsUpdatedAt: null,
+    client: null,
+    server: null,
+    db: null,
+    storage: null,
+    auth: null,
+    hosting: null,
+    ai: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

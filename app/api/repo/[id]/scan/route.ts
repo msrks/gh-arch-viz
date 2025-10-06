@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth(request);
   if (authResult instanceof NextResponse) {
@@ -21,7 +21,7 @@ export async function POST(
   }
 
   const { user } = authResult;
-  const repoId = params.id;
+  const { id: repoId } = await params;
 
   // Get GitHub token from account table
   const githubAccount = await db.query.account.findFirst({

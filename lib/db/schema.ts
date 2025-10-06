@@ -84,6 +84,15 @@ export const repoInventory = pgTable(
     testing: jsonb("testing").$type<string[]>().default([]),
     lintFormat: jsonb("lint_format").$type<string[]>().default([]),
 
+    // Architecture detection fields
+    client: text("client"), // Vue, React, Next.js, Nuxt.js
+    server: text("server"), // Flask, FastAPI, Next.js, Nuxt.js, Express.js
+    db: text("db"), // Neon, Supabase, Firestore, AWS RDB, AWS DynamoDB, AWS Aurora, MongoDB, Redis
+    storage: text("storage"), // S3, Vercel Blob, GCS, Firebase Storage
+    auth: text("auth"), // AWS Cognito, Firebase Auth, Next-Auth, Better-Auth
+    hosting: text("hosting"), // Vercel, CloudRun, EC2, Docker, Firebase Hosting
+    ai: text("ai"), // opencv, sagemaker, vertex-ai
+
     lastScannedAt: timestamp("last_scanned_at"),
     detectionScore: real("detection_score"),
     evidence: jsonb("evidence").$type<Record<string, any>>().default({}),

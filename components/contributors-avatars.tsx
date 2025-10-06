@@ -20,7 +20,7 @@ interface ContributorsAvatarsProps {
 
 export function ContributorsAvatars({
   contributors,
-  maxDisplay = 7,
+  maxDisplay = 3,
 }: ContributorsAvatarsProps) {
   if (!contributors || contributors.length === 0) {
     return <span className="text-muted-foreground text-sm">-</span>;
@@ -43,8 +43,11 @@ export function ContributorsAvatars({
                   className="relative inline-block"
                   style={{ zIndex: displayContributors.length - index }}
                 >
-                  <Avatar className="h-8 w-8 border-2 border-background hover:border-primary transition-colors">
-                    <AvatarImage src={contributor.avatarUrl} alt={contributor.login} />
+                  <Avatar className="h-7 w-7 border-2 border-background hover:border-primary transition-colors">
+                    <AvatarImage
+                      src={contributor.avatarUrl}
+                      alt={contributor.login}
+                    />
                     <AvatarFallback>
                       {contributor.login.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -53,13 +56,14 @@ export function ContributorsAvatars({
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  @{contributor.login} ({contributor.contributions} contributions)
+                  @{contributor.login} ({contributor.contributions}{" "}
+                  contributions)
                 </p>
               </TooltipContent>
             </Tooltip>
           ))}
         </div>
-        {remaining > 0 && (
+        {/* {remaining > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="ml-1 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
@@ -77,7 +81,7 @@ export function ContributorsAvatars({
               </div>
             </TooltipContent>
           </Tooltip>
-        )}
+        )} */}
       </div>
     </TooltipProvider>
   );
