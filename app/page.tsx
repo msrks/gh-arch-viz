@@ -1,9 +1,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { redirect } from "next/navigation";
-import { Github } from "lucide-react";
+import { SignInButton } from "@/components/sign-in-button";
 
 export default async function Home() {
   const session = await auth.api.getSession({
@@ -41,12 +40,7 @@ export default async function Home() {
             </div>
 
             <div className="pt-4">
-              <a href="/api/auth/sign-in/social/github">
-                <Button size="lg" className="w-full" variant="default">
-                  <Github className="mr-2 h-5 w-5" />
-                  Sign in with GitHub
-                </Button>
-              </a>
+              <SignInButton />
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
