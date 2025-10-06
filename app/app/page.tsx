@@ -19,6 +19,12 @@ import { ScanAllButton } from "@/components/scan-all-button";
 import { ContributorsAvatars } from "@/components/contributors-avatars";
 import { LanguageIcon } from "@/components/language-icon";
 import { RescanButton } from "@/components/rescan-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /**
  * Format date as relative time (e.g., "2 days ago", "3 months ago")
@@ -218,48 +224,53 @@ export default async function AppPage() {
                         : "-"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap items-center">
-                        {repo.languages &&
-                        (
-                          repo.languages as Array<{
-                            name: string;
-                            percentage: number;
-                          }>
-                        ).length > 0 ? (
+                      <TooltipProvider>
+                        <div className="flex gap-1 flex-wrap items-center">
+                          {repo.languages &&
                           (
                             repo.languages as Array<{
                               name: string;
                               percentage: number;
                             }>
-                          ).map((lang) => (
-                            <div
-                              key={lang.name}
-                              className="flex items-center"
-                              title={`${lang.name}: ${lang.percentage}%`}
+                          ).length > 0 ? (
+                            (
+                              repo.languages as Array<{
+                                name: string;
+                                percentage: number;
+                              }>
+                            ).map((lang) => (
+                              <Tooltip key={lang.name}>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center cursor-pointer">
+                                    <LanguageIcon language={lang.name} size={16} />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{lang.name}: {lang.percentage}%</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ))
+                          ) : repo.primaryLanguage ? (
+                            <Badge
+                              variant="secondary"
+                              className="h-5 px-2 text-xs"
+                              style={{
+                                backgroundColor: getLanguageColor(
+                                  repo.primaryLanguage
+                                ),
+                                color: getLanguageColor(repo.primaryLanguage)
+                                  ? "white"
+                                  : undefined,
+                                borderColor: getLanguageColor(
+                                  repo.primaryLanguage
+                                ),
+                              }}
                             >
-                              <LanguageIcon language={lang.name} size={16} />
-                            </div>
-                          ))
-                        ) : repo.primaryLanguage ? (
-                          <Badge
-                            variant="secondary"
-                            className="h-5 px-2 text-xs"
-                            style={{
-                              backgroundColor: getLanguageColor(
-                                repo.primaryLanguage
-                              ),
-                              color: getLanguageColor(repo.primaryLanguage)
-                                ? "white"
-                                : undefined,
-                              borderColor: getLanguageColor(
-                                repo.primaryLanguage
-                              ),
-                            }}
-                          >
-                            {repo.primaryLanguage}
-                          </Badge>
-                        ) : null}
-                      </div>
+                              {repo.primaryLanguage}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell>
                       {repo.client ? (
