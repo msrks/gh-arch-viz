@@ -112,6 +112,29 @@ export const serverDetector: Detector = async ({ tree, read, current }) => {
     }
   }
 
+  // Check for Streamlit in all requirements.txt and Pipfile
+  if (!server) {
+    for (const reqPath of requirementsTxtFiles) {
+      const reqFile = await read(reqPath);
+      if (reqFile && reqFile.includes("streamlit")) {
+        server = "Streamlit";
+        proofs.push({ file: reqPath, snippet: "Streamlit detected" });
+        break;
+      }
+    }
+
+    if (!server) {
+      for (const pipPath of pipFiles) {
+        const pipFile = await read(pipPath);
+        if (pipFile && pipFile.includes("streamlit")) {
+          server = "Streamlit";
+          proofs.push({ file: pipPath, snippet: "Streamlit detected" });
+          break;
+        }
+      }
+    }
+  }
+
   return {
     patch: { server },
     proofs,
