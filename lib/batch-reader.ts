@@ -32,8 +32,8 @@ export async function batchReadFiles(
   owner: string,
   repo: string,
   tree: { path?: string; type?: string }[]
-): Promise<Map<string, string>> {
-  const cache = new Map<string, string>();
+): Promise<Map<string, string | null>> {
+  const cache = new Map<string, string | null>();
 
   // Filter common files that exist in the tree
   const filesToFetch = COMMON_FILES.filter((file) =>
@@ -62,22 +62,21 @@ export async function batchReadFiles(
  * Create a cached read function that uses batch-fetched data
  */
 export function createCachedReader(
-  cache: Map<string, string>,
+  cache: Map<string, string | null>,
   octokit: Octokit,
   owner: string,
   repo: string
 ) {
   return async (path: string): Promise<string | null> => {
-    // Check cache first
+    // Check cache first (including null values for 404s)
     if (cache.has(path)) {
       return cache.get(path)!;
     }
 
     // Fallback to individual fetch for files not in cache
     const content = await getText(octokit, owner, repo, path);
-    if (content) {
-      cache.set(path, content);
-    }
+    // Cache both successful results AND 404s (null) to avoid repeated requests
+    cache.set(path, content);
     return content;
   };
 }
