@@ -5,23 +5,44 @@ import { getText } from "./github";
  * Common configuration files that detectors frequently check
  */
 const COMMON_FILES = [
+  // Package managers
   "package.json",
   "requirements.txt",
   "Pipfile",
+
+  // Environment files
   ".env",
   ".env.example",
+
+  // Framework configs
   "next.config.js",
   "next.config.mjs",
   "next.config.ts",
   "nuxt.config.js",
   "nuxt.config.ts",
+
+  // Deployment configs
   "vercel.json",
   "Dockerfile",
   "docker-compose.yml",
+
+  // Infrastructure
   ".github/workflows",
   "terraform.tf",
   "main.tf",
   "cloudbuild.yaml",
+
+  // Common subdirectory patterns
+  "front/package.json",
+  "frontend/package.json",
+  "client/package.json",
+  "backend/requirements.txt",
+  "backend/Pipfile",
+  "server/requirements.txt",
+  "server/Pipfile",
+  "infra/python/requirements.txt",
+  "api/requirements.txt",
+  "app/requirements.txt",
 ];
 
 /**
