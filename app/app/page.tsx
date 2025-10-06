@@ -238,7 +238,9 @@ export default async function AppPage() {
                                 name: string;
                                 percentage: number;
                               }>
-                            ).map((lang) => (
+                            )
+                            .filter((lang) => !["CSS", "Batchfile"].includes(lang.name))
+                            .map((lang) => (
                               <Tooltip key={lang.name}>
                                 <TooltipTrigger asChild>
                                   <div className="flex items-center cursor-pointer">

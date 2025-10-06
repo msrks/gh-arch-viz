@@ -204,9 +204,6 @@ export async function listRepoLanguages(
       repo,
     });
 
-    // Languages to exclude from display
-    const excludedLanguages = ["CSS", "Batchfile", "HTML"];
-
     // Calculate total bytes
     const totalBytes = Object.values(data).reduce((sum, bytes) => sum + bytes, 0);
 
@@ -214,13 +211,13 @@ export async function listRepoLanguages(
       return [];
     }
 
-    // Calculate percentages and filter by threshold and excluded languages
+    // Calculate percentages and filter by threshold
     const languages = Object.entries(data)
       .map(([name, bytes]) => ({
         name,
         percentage: Math.round((bytes / totalBytes) * 100),
       }))
-      .filter((lang) => lang.percentage >= threshold && !excludedLanguages.includes(lang.name))
+      .filter((lang) => lang.percentage >= threshold)
       .sort((a, b) => b.percentage - a.percentage);
 
     return languages;
