@@ -234,13 +234,10 @@ export default async function AppPage() {
                           ).map((lang) => (
                             <div
                               key={lang.name}
-                              className="flex items-center gap-1 text-xs"
-                              title={lang.name}
+                              className="flex items-center"
+                              title={`${lang.name}: ${lang.percentage}%`}
                             >
                               <LanguageIcon language={lang.name} size={16} />
-                              <span className="font-medium">
-                                {lang.percentage}%
-                              </span>
                             </div>
                           ))
                         ) : repo.primaryLanguage ? (
