@@ -41,12 +41,12 @@ export default async function Home() {
             </div>
 
             <div className="pt-4">
-              <form action="/api/auth/signin/github" method="POST">
-                <Button type="submit" size="lg" className="w-full" variant="default">
+              <a href="/api/auth/sign-in/social/github">
+                <Button size="lg" className="w-full" variant="default">
                   <Github className="mr-2 h-5 w-5" />
                   Sign in with GitHub
                 </Button>
-              </form>
+              </a>
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
