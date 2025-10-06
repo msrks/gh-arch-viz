@@ -63,6 +63,60 @@ function getLanguageColor(language: string): string | undefined {
   return colors[language];
 }
 
+/**
+ * Get framework badge color
+ */
+function getFrameworkColor(framework: string): string | undefined {
+  const colors: Record<string, string> = {
+    // Client
+    "React": "#61DAFB",
+    "Vue": "#42b883",
+    "Next.js": "#000000",
+    "Nuxt.js": "#00DC82",
+
+    // Server
+    "Flask": "#000000",
+    "FastAPI": "#009688",
+    "Streamlit": "#FF4B4B",
+    "Express.js": "#000000",
+
+    // Database
+    "Neon": "#00E599",
+    "Supabase": "#3ECF8E",
+    "Firestore": "#FFA611",
+    "MongoDB": "#47A248",
+    "Redis": "#DC382D",
+    "AWS RDS": "#527FFF",
+    "AWS DynamoDB": "#4053D6",
+    "AWS Aurora": "#527FFF",
+
+    // Storage
+    "S3": "#569A31",
+    "Vercel Blob": "#000000",
+    "GCS": "#4285F4",
+    "Firebase Storage": "#FFA611",
+
+    // Hosting
+    "Vercel": "#000000",
+    "CloudRun": "#4285F4",
+    "EC2": "#FF9900",
+    "Docker": "#2496ED",
+    "Firebase Hosting": "#FFA611",
+
+    // Auth
+    "AWS Cognito": "#DD344C",
+    "Firebase Auth": "#FFA611",
+    "Next-Auth": "#000000",
+    "Better-Auth": "#000000",
+
+    // AI
+    "OpenCV": "#5C3EE8",
+    "SageMaker": "#FF9900",
+    "Vertex AI": "#4285F4",
+  };
+  return colors[framework];
+}
+
 export default async function AppPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -195,7 +249,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.client ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.client),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.client}
                         </Badge>
                       ) : (
@@ -204,7 +265,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.server ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.server),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.server}
                         </Badge>
                       ) : (
@@ -213,7 +281,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.db ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.db),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.db}
                         </Badge>
                       ) : (
@@ -222,7 +297,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.storage ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.storage),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.storage}
                         </Badge>
                       ) : (
@@ -231,7 +313,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.hosting ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.hosting),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.hosting}
                         </Badge>
                       ) : (
@@ -240,7 +329,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.auth ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.auth),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.auth}
                         </Badge>
                       ) : (
@@ -249,7 +345,14 @@ export default async function AppPage() {
                     </TableCell>
                     <TableCell>
                       {repo.ai ? (
-                        <Badge variant="outline" className="h-5 px-2 text-xs">
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-2 text-xs"
+                          style={{
+                            borderColor: getFrameworkColor(repo.ai),
+                            borderWidth: "2px",
+                          }}
+                        >
                           {repo.ai}
                         </Badge>
                       ) : (
