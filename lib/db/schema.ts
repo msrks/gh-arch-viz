@@ -88,6 +88,10 @@ export const repoInventory = pgTable(
     policyStatus: text("policy_status"), // compliant / drift / unknown
     policyViolations: jsonb("policy_violations").$type<Record<string, any>>(),
 
+    // GitHub repository metadata
+    repoUpdatedAt: timestamp("repo_updated_at"), // Last update from GitHub (pushed_at)
+    repoPushedAt: timestamp("repo_pushed_at"), // Last push from GitHub
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

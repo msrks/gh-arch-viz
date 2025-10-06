@@ -128,11 +128,30 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
   - [x] `app/api/inventory/scan/route.ts` (POST)
 
-    - 一括スキャン（全件 or 選択リポ）
-    - バックグラウンドジョブ or 並列処理（簡易実装）
+    - 一括スキャン（全リポジトリを Upstash QStash にキューイング）
+    - 組織全体のリポジトリ取得（チームスラッグ空の場合）
+
+  - [x] `app/api/queue/scan-repo/route.ts` (POST)
+
+    - QStash ワーカーエンドポイント（署名検証付き）
+    - 単一リポジトリのバックグラウンドスキャン処理
 
   - [x] `app/api/repo/[id]/scan/route.ts` (POST)
     - 単体リポ再スキャン
+
+### 2.4 バックグラウンドジョブ（Upstash QStash）
+
+- [x] **QStash セットアップ**
+
+  - [x] `@upstash/qstash` パッケージインストール
+  - [x] `lib/qstash.ts` - QStash クライアント作成
+  - [x] 環境変数設定（`.env.example` に追加）
+
+- [x] **キュー処理実装**
+  - [x] `/api/inventory/scan` でリポジトリを QStash にエンキュー
+  - [x] `/api/queue/scan-repo` でワーカー処理（署名検証）
+  - [x] UI 更新（`components/scan-all-button.tsx` でキューイング状態の表示）
+  - [x] 組織全体のリポジトリスキャン対応（`lib/github.ts` に `listOrgRepos` 追加）
 
 ---
 
@@ -236,6 +255,22 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 - **組織メンバーシップのみ**: 指定された組織のメンバーであれば誰でもアクセス可能
 - **実装場所**: `lib/auth.ts`の`verifyMembership()`関数に条件分岐を追加
 
+### バックグラウンドジョブの実装（2025-10-06）
+
+- **Upstash QStash 導入**: Vercel 環境での実行時間制限を回避するためバックグラウンドジョブ処理を実装
+- **開発/本番環境の自動切り替え**: 開発環境ではバッチ並列処理（10個ずつ）、本番環境ではQStash使用
+- **署名検証**: QStash からのリクエストは署名検証で保護
+- **組織全体のスキャン**: チームスラッグが空の場合、組織全体のリポジトリをスキャン可能
+
+### UIの改善（2025-10-06）
+
+- **リポジトリメタデータ**: GitHub repo の最終更新日時（`repo_updated_at`, `repo_pushed_at`）をDBに保存
+- **相対時間表示**: "2 days ago"形式で最終更新日時を表示
+- **言語カラー**: Python, TypeScript, JavaScript, Jupyter Notebook, HCL, Vue の6言語にGitHubカラーを適用
+- **テーブル最適化**: CI/CD, Deploy, Container, Score, Last Scan 列を削除し、シンプルな4列構成に
+- **リポジトリ名トランケート**: 30文字以上は省略表示（ホバーで全文表示）
+- **ソート改善**: GitHub repo の最終push日時（`repo_pushed_at`）でソート
+
 ### 実装優先度
 
 **MVP（最小限）**: Phase 1 全て + Phase 2 全て + Phase 3.2（メインテーブルのみ）
@@ -252,20 +287,21 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
 ## 🎬 次のアクション
 
-現在のステータス: **Phase 2 完了 → Phase 3 開始**
+現在のステータス: **Phase 3 完了 → 運用準備**
 
 **完了済み**:
 
 - ✅ Phase 1: 基盤セットアップ（環境構築・認証・DB）
-- ✅ Phase 2: コア機能（GitHub 連携・スキャナー・API）
+- ✅ Phase 2: コア機能（GitHub 連携・スキャナー・API・**QStash バックグラウンドジョブ**）
+- ✅ Phase 3: UI/UX（ランディング・メインテーブル・詳細・インサイト）
+- ✅ Phase 4: デプロイ準備・ドキュメント
 
 **次のステップ**:
 
-1. Phase 3.1: shadcn/ui コンポーネント追加
-2. Phase 3.2: 画面実装（ランディング・メインテーブル・詳細）
-3. Phase 3.3: コンポーネント実装（Table・Drawer・Charts）
-4. Phase 4: デプロイ・ドキュメント
+1. Upstash QStash アカウント作成・トークン取得
+2. 本番環境でのテスト
+3. パフォーマンス最適化（必要に応じて）
 
 ---
 
-**進捗率**: 約 50/100 項目完了 (50%)
+**進捗率**: 約 85/100 項目完了 (85%)

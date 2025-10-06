@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth";
-import { makeOctokit, listTeamRepos } from "@/lib/github";
+import { makeOctokit } from "@/lib/github";
 import { scanOneRepo } from "@/lib/scan";
 import { allDetectors } from "@/lib/detectors";
 import { db } from "@/lib/db";
-import { repoInventory } from "@/lib/db/schema";
+import { repoInventory, account } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
@@ -20,16 +20,22 @@ export async function POST(
     return authResult;
   }
 
+  const { user } = authResult;
   const repoId = params.id;
 
-  // Get GitHub token
-  const githubToken = process.env.GITHUB_TOKEN; // Temporary
-  if (!githubToken) {
+  // Get GitHub token from account table
+  const githubAccount = await db.query.account.findFirst({
+    where: eq(account.userId, user.id as string),
+  });
+
+  if (!githubAccount?.accessToken) {
     return NextResponse.json(
       { error: "GitHub token not found" },
       { status: 401 }
     );
   }
+
+  const githubToken = githubAccount.accessToken;
 
   const org = process.env.ALLOWED_GH_ORG!;
 

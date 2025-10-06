@@ -30,6 +30,8 @@ export function initInventory(meta: {
   defaultBranch: string;
   visibility: string;
   primaryLanguage?: string | null;
+  updatedAt?: Date | null;
+  pushedAt?: Date | null;
 }) {
   return {
     id: createId(),
@@ -40,6 +42,8 @@ export function initInventory(meta: {
     visibility: meta.visibility,
     url: meta.url,
     primaryLanguage: meta.primaryLanguage || null,
+    repoUpdatedAt: meta.updatedAt || null,
+    repoPushedAt: meta.pushedAt || null,
     frameworks: [],
     buildTools: [],
     packageManagers: [],
@@ -103,6 +107,8 @@ export async function scanOneRepo(
     defaultBranch: string;
     visibility: string;
     primaryLanguage?: string | null;
+    updatedAt?: Date | null;
+    pushedAt?: Date | null;
   },
   detectors: Detector[]
 ) {
@@ -150,6 +156,10 @@ export async function scanOneRepo(
   inv.evidence = proofs;
   inv.lastScannedAt = new Date();
   inv.updatedAt = new Date();
+
+  // Update GitHub repo metadata
+  if (meta.pushedAt) inv.repoPushedAt = meta.pushedAt;
+  if (meta.updatedAt) inv.repoUpdatedAt = meta.updatedAt;
 
   // Upsert to database
   if (existing) {

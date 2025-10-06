@@ -8,6 +8,32 @@ export function makeOctokit(accessToken: string): Octokit {
 }
 
 /**
+ * List all repositories in an organization
+ */
+export async function listOrgRepos(
+  octokit: Octokit,
+  org: string
+) {
+  const repos = await octokit.paginate(octokit.rest.repos.listForOrg, {
+    org,
+    type: "all", // Include public, private, and internal repos
+    per_page: 100,
+  });
+
+  return repos.map((r) => ({
+    repoId: r.id,
+    name: r.name,
+    owner: r.owner?.login || org,
+    url: r.html_url,
+    defaultBranch: r.default_branch || "main",
+    visibility: r.visibility || "public",
+    primaryLanguage: r.language || null,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : null,
+    pushedAt: r.pushed_at ? new Date(r.pushed_at) : null,
+  }));
+}
+
+/**
  * List all repositories accessible by a specific team
  */
 export async function listTeamRepos(
@@ -24,10 +50,13 @@ export async function listTeamRepos(
   return repos.map((r) => ({
     repoId: r.id,
     name: r.name,
+    owner: r.owner?.login || org,
     url: r.html_url,
     defaultBranch: r.default_branch || "main",
     visibility: r.visibility || "public",
     primaryLanguage: r.language || null,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : null,
+    pushedAt: r.pushed_at ? new Date(r.pushed_at) : null,
   }));
 }
 

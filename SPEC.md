@@ -42,8 +42,8 @@
 
 ```bash
 # Better Auth
-AUTH_SECRET=replace_me_long_random
-AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=replace_me_long_random
+BETTER_AUTH_URL=http://localhost:3000
 
 # GitHub OAuth (Better Authのプロバイダ用)
 GITHUB_CLIENT_ID=iv_...
@@ -59,6 +59,12 @@ SESSION_TTL_MINUTES=120
 
 # Database (Neon)
 DATABASE_URL=postgresql://<user>:<pass>@<host>/<db>?sslmode=require
+
+# Upstash QStash (バックグラウンドジョブ処理)
+QSTASH_URL=https://qstash.upstash.io
+QSTASH_TOKEN=your-qstash-token
+QSTASH_CURRENT_SIGNING_KEY=your-current-signing-key
+QSTASH_NEXT_SIGNING_KEY=your-next-signing-key
 ```
 
 ---
@@ -138,25 +144,26 @@ export const db = drizzle(pool);
 ```
 app/
   layout.tsx
-  page.tsx                    # Public landing (Sign in)
-  app/page.tsx                # Protected: Inventory table
-  repo/[name]/page.tsx        # Repo detail
-  insights/page.tsx           # Aggregations
-  api/auth/[...route]/route.ts  # Better Auth handler (API Route)
-  api/inventory/route.ts      # GET inventory (filter/pagination)
-  api/inventory/scan/route.ts # POST: bulk scan
-  api/repo/[id]/scan/route.ts # POST: single scan
+  page.tsx                      # Public landing (Sign in)
+  app/page.tsx                  # Protected: Inventory table
+  repo/[name]/page.tsx          # Repo detail
+  insights/page.tsx             # Aggregations
+  api/auth/[...all]/route.ts    # Better Auth handler (API Route)
+  api/inventory/route.ts        # GET inventory (filter/pagination)
+  api/inventory/scan/route.ts   # POST: bulk scan (QStash enqueue)
+  api/queue/scan-repo/route.ts  # POST: QStash worker (signature verified)
+  api/repo/[id]/scan/route.ts   # POST: single scan
 lib/
-  auth.ts                     # Better Auth init + callbacks
-  github.ts                   # Octokit helpers (list repos / read files)
-  scan.ts                     # Detector pipeline
-  drizzle/ (schema.ts client.ts)
+  auth.ts                       # Better Auth init + callbacks
+  github.ts                     # Octokit helpers (list repos / read files)
+  scan.ts                       # Detector pipeline
+  qstash.ts                     # QStash client
+  db/ (schema.ts index.ts)
+  detectors/ (node.ts nextjs.ts docker.ts etc.)
 components/
   ui/ (shadcn)
-  InventoryTable.tsx
-  RepoSummary.tsx
-  EvidenceDrawer.tsx
-  Charts.tsx
+  scan-all-button.tsx           # Client component for scan trigger
+  (other components)
 styles/
   globals.css (Tailwind v4)
 ```
@@ -438,15 +445,31 @@ _各 detector は `package.json`, `pyproject.toml`, `.github/workflows/_.yml`, `
 # 10) API（**Next.js API Routes**）と **Server Actions**
 
 - **GET `/api/inventory`**: ページング/フィルタ（クエリ: `fw=Next.js&deploy=Vercel` など）
-- **POST `/api/inventory/scan`**: 全件 or 選択リポ再スキャン（キューリングは簡易で良い：並列数 n）
+- **POST `/api/inventory/scan`**: 全件 or 選択リポ再スキャン（**Upstash QStash** でバックグラウンドキューイング）
+- **POST `/api/queue/scan-repo`**: QStash からコールされる単一リポスキャンハンドラー（署名検証済み）
 - **POST `/api/repo/[id]/scan`**: 単体再スキャン
-- **Server Actions**: テーブル行の「Scan」ボタンから呼び出し → 権限/レートをここで再確認
+
+**バックグラウンドジョブ処理（環境別）**:
+
+**開発環境** (`NODE_ENV=development`):
+- `/api/inventory/scan` は直接スキャンを実行（QStash不使用）
+- バッチ並列処理：10リポジトリずつ並列スキャン
+- GitHub APIレート制限を考慮した安全な並列度
+- QStash無料枠を節約しつつ高速処理（順次処理の約1/10の時間）
+- ngrok等のトンネル不要
+
+**本番環境** (`NODE_ENV=production`, Upstash QStash):
+- `/api/inventory/scan` は全リポジトリを QStash キューに投入し即座にレスポンス
+- QStash が各リポジトリを順次 `/api/queue/scan-repo` エンドポイントに送信
+- Vercel の実行時間制限（Pro: 15秒、Enterprise: 900秒）を回避
+- リトライ機能・Dead Letter Queue を QStash が自動処理
 
 **認可**:
 
 - すべての API/Action で **Better Auth のセッション**を検証
 - **org/team** がセッションの値と一致するか再確認
 - トークンの **lastVerifiedAt** が TTL 超過なら **org/team 再検証**
+- QStash エンドポイントは **署名検証**（`verifySignatureAppRouter`）で保護
 
 ---
 

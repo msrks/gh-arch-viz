@@ -22,8 +22,10 @@
 - **🔍 Searchable Inventory** - Browse and filter all repositories by technology stack
 - **📝 Evidence Tracking** - View exact files and snippets used for detection
 - **📊 Visual Insights** - Charts and graphs showing technology distribution
-- **⚡ Fast Scanning** - Concurrent repository scanning with rate limit handling
-- **🎨 Modern UI** - Built with shadcn/ui and Tailwind CSS v4
+- **⚡ Fast Scanning** - Batch parallel processing (dev) or QStash background jobs (prod)
+- **🕒 Smart Sorting** - Repositories sorted by last push date with "X days ago" display
+- **🎨 Modern UI** - Built with shadcn/ui, Tailwind CSS v4, and GitHub language colors
+- **🔄 Environment-aware** - Automatic dev/prod mode switching for optimal performance
 
 ## 🛠️ Tech Stack
 
@@ -40,6 +42,7 @@
 - pnpm 9+
 - PostgreSQL database (recommend [Neon](https://neon.tech))
 - GitHub OAuth App credentials
+- Upstash QStash account (for background job processing)
 
 ## 🔧 Setup
 
@@ -68,7 +71,18 @@ pnpm install
 2. Create a new project
 3. Copy the connection string (starts with `postgresql://`)
 
-### 4. Configure environment variables
+### 4. Set up Upstash QStash
+
+1. Create a free account at [Upstash Console](https://console.upstash.com)
+2. Navigate to the **QStash** tab
+3. Copy the following credentials:
+   - **QSTASH_TOKEN**
+   - **QSTASH_CURRENT_SIGNING_KEY**
+   - **QSTASH_NEXT_SIGNING_KEY**
+
+**Note**: QStash is used for background job processing to scan repositories without hitting Vercel's execution time limits. The free tier includes 500 requests/day.
+
+### 5. Configure environment variables
 
 Copy `.env.example` to `.env`:
 
@@ -92,18 +106,25 @@ GITHUB_CLIENT_SECRET="<your-github-oauth-client-secret>"
 
 # GitHub Organization & Team
 ALLOWED_GH_ORG="<your-org-name>"
-ALLOWED_GH_TEAM_SLUG="<your-team-slug>"
+ALLOWED_GH_TEAM_SLUG="<your-team-slug>"  # Leave empty "" to allow all org members
+
+# Upstash QStash
+QSTASH_TOKEN="<your-qstash-token>"
+QSTASH_CURRENT_SIGNING_KEY="<your-current-signing-key>"
+QSTASH_NEXT_SIGNING_KEY="<your-next-signing-key>"
 ```
 
-**Note**: To find your team slug, go to your GitHub org → Teams → click on your team. The URL will be `github.com/orgs/YOUR_ORG/teams/YOUR_TEAM_SLUG`.
+**Notes**:
+- To find your team slug, go to your GitHub org → Teams → click on your team. The URL will be `github.com/orgs/YOUR_ORG/teams/YOUR_TEAM_SLUG`.
+- Leave `ALLOWED_GH_TEAM_SLUG=""` (empty string) to allow all organization members to access the app.
 
-### 5. Run database migrations
+### 6. Run database migrations
 
 ```bash
 pnpm db:push
 ```
 
-### 6. Start the development server
+### 7. Start the development server
 
 ```bash
 pnpm dev
@@ -124,7 +145,8 @@ Open [http://localhost:3000](http://localhost:3000)
 2. **Scan Repositories**
 
    - Click "Scan All Repositories" on the inventory page
-   - The app will list all repositories accessible to your team and scan them
+   - The app will enqueue all repositories for background scanning via QStash
+   - Refresh the page after a few minutes to see scan results
 
 3. **Browse Inventory**
 
@@ -176,6 +198,21 @@ pnpm db:push      # Push schema changes to database
 pnpm db:studio    # Open Drizzle Studio
 ```
 
+### Development vs Production Behavior
+
+**Development Mode** (`pnpm dev`, `NODE_ENV=development`):
+- Repository scans run **directly** (no QStash)
+- **Batch parallel processing**: 10 repositories at a time
+- Faster than sequential, safer than full parallel
+- No need for ngrok or tunnel services
+- Saves QStash free tier quota (500 messages/day)
+
+**Production Mode** (Vercel, `NODE_ENV=production`):
+- Repository scans use **Upstash QStash** for background processing
+- Each repository is queued individually
+- No Vercel execution time limit issues
+- Automatic retries and dead letter queue
+
 ## 🚢 Deployment
 
 ### Vercel (Recommended)
@@ -194,10 +231,14 @@ Make sure to set these in your hosting platform:
 - `DATABASE_URL`
 - `BETTER_AUTH_SECRET` (use a strong random string)
 - `BETTER_AUTH_URL` (your production URL)
+- `NEXT_PUBLIC_APP_URL` (your production URL)
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
 - `ALLOWED_GH_ORG`
-- `ALLOWED_GH_TEAM_SLUG`
+- `ALLOWED_GH_TEAM_SLUG` (leave empty to allow all org members)
+- `QSTASH_TOKEN`
+- `QSTASH_CURRENT_SIGNING_KEY`
+- `QSTASH_NEXT_SIGNING_KEY`
 
 ## 🐛 Troubleshooting
 
@@ -211,18 +252,29 @@ Make sure to set these in your hosting platform:
 
 - Authenticated requests have a limit of 5000/hour
 - The app includes retry logic with exponential backoff
-- For large orgs, consider implementing background job queues
+- Development mode uses batch parallel processing (10 repos at a time) to avoid hitting rate limits
+- Production mode uses QStash for distributed processing
+
+### QStash Background Jobs Not Processing
+
+- Verify that `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, and `QSTASH_NEXT_SIGNING_KEY` are correctly set
+- Ensure your `NEXT_PUBLIC_APP_URL` or `BETTER_AUTH_URL` is publicly accessible (QStash needs to call your `/api/queue/scan-repo` endpoint)
+- Check QStash dashboard for failed jobs and error messages
+- **Note**: In development mode (`pnpm dev`), QStash is **not used** - scans run directly to save quota
 
 ## 🗺 Roadmap
 
+- [x] **Background Jobs**: Upstash QStash integration for scalable scanning
+- [x] **Organization-wide Scanning**: Support for scanning all org repos (not just team repos)
 - [ ] **Policy Engine**: Define and enforce technology standards
-- [ ] **Scheduled Scans**: Automatic daily/weekly rescans
-- [ ] **GitHub App**: Replace OAuth with GitHub App
+- [ ] **Scheduled Scans**: Automatic daily/weekly rescans via QStash
+- [ ] **GitHub App**: Replace OAuth with GitHub App for better security
 - [ ] **Notifications**: Alert on policy violations
 - [ ] **Export**: CSV/JSON export of inventory
 - [ ] **More Detectors**: Python, Go, Rust, Kubernetes, AWS, GCP
 - [ ] **Custom Rules**: User-defined detection patterns
 - [ ] **Historical Tracking**: Track technology changes over time
+- [ ] **Progress Tracking**: Real-time scan progress UI
 
 ## 📝 License
 
