@@ -25,8 +25,8 @@ async function verifyMembership(
     if (orgMembership.state !== "active") {
       throw new Error("Not an active org member");
     }
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error) {
+    if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
       throw new Error(`User ${username} is not a member of ${org}`);
     }
     throw error;
@@ -48,8 +48,8 @@ async function verifyMembership(
     if (!["active", "maintainer"].includes(teamMembership.state)) {
       throw new Error("Not an active team member");
     }
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error) {
+    if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
       throw new Error(`User ${username} is not a member of team ${teamSlug}`);
     }
     throw error;
@@ -66,11 +66,6 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
-  },
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -81,10 +76,10 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET!,
   callbacks: {
-    async signIn({ user, account }: { user: any; account: any }) {
-      if (account?.provider === "github") {
-        const token = account.access_token;
-        const username = user.name || account.providerAccountId;
+    async signIn({ user, account }: { user: Record<string, unknown>; account: Record<string, unknown> }) {
+      if ((account as { provider?: string }).provider === "github") {
+        const token = (account as { access_token?: string }).access_token;
+        const username = (user as { name?: string }).name || (account as { providerAccountId?: string }).providerAccountId;
 
         if (!token || !username) {
           throw new Error("Missing GitHub token or username");

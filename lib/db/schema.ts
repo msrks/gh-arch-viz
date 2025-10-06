@@ -56,17 +56,6 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
-export const todos = pgTable("todos", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  title: varchar({ length: 255 }).notNull(),
-  description: text().notNull(),
-  completed: boolean().notNull().default(false),
-  imageUrl: text("imageUrl"),
-  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
-  createdAt: timestamp().notNull().defaultNow(),
-  updatedAt: timestamp().notNull().defaultNow(),
-});
-
 export const repoInventory = pgTable(
   "repo_inventory",
   {

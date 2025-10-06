@@ -7,16 +7,20 @@ export async function middleware(request: NextRequest) {
     headers: request.headers,
   });
 
-  // Redirect to sign-in if accessing protected routes without session
-  if (!session && request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+  const pathname = request.nextUrl.pathname;
+
+  // Public routes - no authentication required
+  const publicRoutes = ["/"];
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
   }
 
-  // Redirect to home if accessing auth pages while authenticated
-  if (session && (
-    request.nextUrl.pathname.startsWith("/auth/sign-in") ||
-    request.nextUrl.pathname.startsWith("/auth/sign-up")
-  )) {
+  // Protected routes - require authentication
+  const protectedRoutes = ["/app", "/repo", "/insights"];
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+
+  if (isProtectedRoute && !session) {
+    // Redirect to landing page if trying to access protected routes without session
     return NextResponse.redirect(new URL("/", request.url));
   }
 
