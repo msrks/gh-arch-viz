@@ -6,8 +6,22 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LanguageIcon } from "@/components/language-icon";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
+
+// Language colors based on GitHub standard
+const LANGUAGE_COLORS: Record<string, string> = {
+  Python: "#3572A5",
+  "Jupyter Notebook": "#DA5B0B",
+  TypeScript: "#3178C6",
+  JavaScript: "#f1e05a",
+  HCL: "#844FBA",
+  Vue: "#41b883",
+  HTML: "#e34c26",
+  C: "#555555",
+  "C++": "#f34b7d",
+};
 
 interface InventoryData {
   primaryLanguage: string | null;
@@ -87,11 +101,14 @@ export default function InsightsPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Convert to chart data
-  const languageData = Object.entries(languageCounts).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  // Convert to chart data (exclude Unknown)
+  const languageData = Object.entries(languageCounts)
+    .filter(([name]) => name !== "Unknown")
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const frameworkData = Object.entries(frameworkCounts)
     .map(([name, value]) => ({ name, value }))
@@ -170,23 +187,45 @@ export default function InsightsPage() {
               <CardDescription>Primary language distribution</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <PieChart>
                   <Pie
                     data={languageData}
                     cx="50%"
                     cy="50%"
                     labelLine={true}
-                    label={(entry) => `${entry.name} (${entry.value})`}
-                    outerRadius={80}
+                    label={(props) => {
+                      const entry = languageData.find(d => d.name === props.name);
+                      return entry && entry.value > 5 ? props.name : "";
+                    }}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {languageData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {languageData.map((entry) => (
+                      <Cell
+                        key={`cell-${entry.name}`}
+                        fill={LANGUAGE_COLORS[entry.name] || COLORS[languageData.indexOf(entry) % COLORS.length]}
+                      />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0];
+                        return (
+                          <div className="bg-background border rounded p-2 shadow-lg">
+                            <div className="flex items-center gap-2">
+                              <LanguageIcon language={data.name as string} size={20} />
+                              <span className="font-semibold">{data.name}</span>
+                            </div>
+                            <p className="text-sm mt-1">Repositories: {data.value}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
