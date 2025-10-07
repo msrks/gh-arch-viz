@@ -7,6 +7,28 @@ export const databaseDetector: Detector = async ({ tree, read, current }) => {
   let db: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 
+  // Check for firebase.json with firestore configuration
+  const firebaseConfigFile = tree.find((f) => f.path?.endsWith("firebase.json"));
+  if (firebaseConfigFile) {
+    const firebaseConfig = await read(firebaseConfigFile.path!);
+    if (firebaseConfig) {
+      try {
+        const config = JSON.parse(firebaseConfig);
+        if (config.firestore) {
+          db = "Firestore";
+          proofs.push({ file: firebaseConfigFile.path!, snippet: "Firestore config in firebase.json detected" });
+          return {
+            patch: { db },
+            proofs,
+            score: 1.0,
+          };
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }
+
   // Check for firestore.rules file
   const firestoreRulesFile = tree.find((f) => f.path?.endsWith("firestore.rules"));
   if (firestoreRulesFile) {

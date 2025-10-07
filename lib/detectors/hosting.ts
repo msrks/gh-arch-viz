@@ -18,14 +18,23 @@ export const hostingDetector: Detector = async ({ tree, read, current }) => {
 
   // Check for Firebase Hosting
   if (!hosting) {
-    const hasFirebaseConfig = tree.some((f) =>
-      ["firebase.json", ".firebaserc"].includes(f.path || "")
-    );
-    if (hasFirebaseConfig) {
-      const firebaseConfig = await read("firebase.json");
-      if (firebaseConfig && firebaseConfig.includes("hosting")) {
-        hosting = "Firebase Hosting";
-        proofs.push({ file: "firebase.json", snippet: "Firebase Hosting detected" });
+    const firebaseConfigFile = tree.find((f) => f.path?.endsWith("firebase.json"));
+    if (firebaseConfigFile) {
+      const firebaseConfig = await read(firebaseConfigFile.path!);
+      if (firebaseConfig) {
+        try {
+          const config = JSON.parse(firebaseConfig);
+          if (config.hosting) {
+            hosting = "Firebase Hosting";
+            proofs.push({ file: firebaseConfigFile.path!, snippet: "Firebase Hosting config in firebase.json detected" });
+          }
+        } catch {
+          // Fallback to string check if JSON parsing fails
+          if (firebaseConfig.includes("hosting")) {
+            hosting = "Firebase Hosting";
+            proofs.push({ file: firebaseConfigFile.path!, snippet: "Firebase Hosting detected" });
+          }
+        }
       }
     }
   }

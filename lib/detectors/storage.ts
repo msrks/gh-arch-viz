@@ -7,6 +7,28 @@ export const storageDetector: Detector = async ({ tree, read, current }) => {
   let storage: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 
+  // Check for firebase.json with storage configuration
+  const firebaseConfigFile = tree.find((f) => f.path?.endsWith("firebase.json"));
+  if (firebaseConfigFile) {
+    const firebaseConfig = await read(firebaseConfigFile.path!);
+    if (firebaseConfig) {
+      try {
+        const config = JSON.parse(firebaseConfig);
+        if (config.storage) {
+          storage = "Firebase Storage";
+          proofs.push({ file: firebaseConfigFile.path!, snippet: "Firebase Storage config in firebase.json detected" });
+          return {
+            patch: { storage },
+            proofs,
+            score: 1.0,
+          };
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }
+
   // Check for storage.rules file (Firebase Storage)
   const storageRulesFile = tree.find((f) => f.path?.endsWith("storage.rules"));
   if (storageRulesFile) {

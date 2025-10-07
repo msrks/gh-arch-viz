@@ -75,38 +75,38 @@ function getLanguageColor(language: string): string | undefined {
 function getFrameworkColor(framework: string): string | undefined {
   const colors: Record<string, string> = {
     // Client
-    "React": "#61DAFB",
-    "Vue": "#42b883",
+    React: "#61DAFB",
+    Vue: "#42b883",
     "Next.js": "#000000",
     "Nuxt.js": "#00DC82",
 
     // Server
-    "Flask": "#000000",
-    "FastAPI": "#009688",
-    "Streamlit": "#FF4B4B",
+    Flask: "#000000",
+    FastAPI: "#009688",
+    Streamlit: "#FF4B4B",
     "Express.js": "#000000",
 
     // Database
-    "Neon": "#00E599",
-    "Supabase": "#3ECF8E",
-    "Firestore": "#FFA611",
-    "MongoDB": "#47A248",
-    "Redis": "#DC382D",
+    Neon: "#00E599",
+    Supabase: "#3ECF8E",
+    Firestore: "#FFA611",
+    MongoDB: "#47A248",
+    Redis: "#DC382D",
     "AWS RDS": "#527FFF",
     "AWS DynamoDB": "#4053D6",
     "AWS Aurora": "#527FFF",
 
     // Storage
-    "S3": "#569A31",
+    S3: "#569A31",
     "Vercel Blob": "#000000",
-    "GCS": "#4285F4",
+    GCS: "#4285F4",
     "Firebase Storage": "#FFA611",
 
     // Hosting
-    "Vercel": "#000000",
-    "CloudRun": "#4285F4",
-    "EC2": "#FF9900",
-    "Docker": "#2496ED",
+    Vercel: "#000000",
+    CloudRun: "#4285F4",
+    EC2: "#FF9900",
+    Docker: "#2496ED",
     "Firebase Hosting": "#FFA611",
 
     // Auth
@@ -116,8 +116,8 @@ function getFrameworkColor(framework: string): string | undefined {
     "Better-Auth": "#000000",
 
     // AI
-    "OpenCV": "#5C3EE8",
-    "SageMaker": "#FF9900",
+    OpenCV: "#5C3EE8",
+    SageMaker: "#FF9900",
     "Vertex AI": "#4285F4",
   };
   return colors[framework];
@@ -161,7 +161,7 @@ export default async function AppPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Repository Inventory</h1>
+            <h1 className="text-3xl font-bold">gh inspector</h1>
             <p className="text-muted-foreground mt-1">
               {inventory.length} repositories scanned
             </p>
@@ -239,19 +239,27 @@ export default async function AppPage() {
                                 percentage: number;
                               }>
                             )
-                            .filter((lang) => !["CSS", "Batchfile"].includes(lang.name))
-                            .map((lang) => (
-                              <Tooltip key={lang.name}>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center cursor-pointer">
-                                    <LanguageIcon language={lang.name} size={16} />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{lang.name}: {lang.percentage}%</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ))
+                              .filter(
+                                (lang) =>
+                                  !["CSS", "Batchfile"].includes(lang.name)
+                              )
+                              .map((lang) => (
+                                <Tooltip key={lang.name}>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center cursor-pointer">
+                                      <LanguageIcon
+                                        language={lang.name}
+                                        size={16}
+                                      />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      {lang.name}: {lang.percentage}%
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ))
                           ) : repo.primaryLanguage ? (
                             <Badge
                               variant="secondary"
