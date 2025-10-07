@@ -14,6 +14,7 @@ import Link from "next/link";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { LanguageIcon } from "@/components/language-icon";
 import Image from "next/image";
+import { PageNav } from "@/components/page-nav";
 
 const COLORS = [
   "#0088FE",
@@ -127,19 +128,13 @@ export default function InsightsPage() {
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <Link href="/app">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Inventory
-            </Button>
-          </Link>
-        </div>
-
-        <div className="mb-8">
+        <div className="flex items-center mb-8">
           <h1 className="text-2xl font-bold">Technology Insights</h1>
-          <p className="text-muted-foreground mt-1">
-            Aggregated analysis of {data.length} repositories
+
+          <PageNav />
+
+          <p className="text-muted-foreground text-xs">
+            {data.length} repositories
           </p>
         </div>
 

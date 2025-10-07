@@ -20,6 +20,7 @@ import { ScanNewButton } from "@/components/scan-new-button";
 import { ContributorsAvatars } from "@/components/contributors-avatars";
 import { LanguageIcon } from "@/components/language-icon";
 import { RescanButton } from "@/components/rescan-button";
+import { PageNav } from "@/components/page-nav";
 import {
   Tooltip,
   TooltipContent,
@@ -78,14 +79,7 @@ export default async function AppPage() {
         <div className="flex items-center mb-2">
           <h1 className="text-2xl font-bold">gh inspector</h1>
 
-          <div className="flex gap-2 items-center ml-auto mr-6">
-            <Link href="/members">
-              <Button variant="link">View Members</Button>
-            </Link>
-            <Link href="/insights">
-              <Button variant="link">View Insights</Button>
-            </Link>
-          </div>
+          <PageNav />
 
           <div className="flex gap-2 items-center">
             <span className="text-muted-foreground text-xs">

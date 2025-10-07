@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { SyncMembersButton } from "@/components/sync-members-button";
+import { PageNav } from "@/components/page-nav";
 
 /**
  * Format date as relative time (e.g., "2 days ago", "3 months ago")
@@ -96,18 +97,16 @@ export default async function MembersPage() {
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Organization Members</h1>
-            <p className="text-muted-foreground mt-1">
+        <div className="flex items-center mb-2">
+          <h1 className="text-2xl font-bold">Organization Members</h1>
+
+          <PageNav />
+
+          <div className="flex gap-2 items-center">
+            <p className="text-muted-foreground text-xs">
               {members.length} members in {org}
             </p>
-          </div>
-          <div className="flex gap-2">
             <SyncMembersButton />
-            <Link href="/app">
-              <Button variant="secondary">View Repositories</Button>
-            </Link>
           </div>
         </div>
 
