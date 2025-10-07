@@ -1,10 +1,12 @@
+import React from "react";
+
 interface LanguageIconProps {
   language: string;
   size?: number;
 }
 
 export function LanguageIcon({ language, size = 16 }: LanguageIconProps) {
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactElement> = {
     Python: (
       <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
         <path

@@ -141,7 +141,8 @@ export async function scanOneRepo(
     ),
   });
 
-  let inv: Record<string, unknown> = existing || initInventory(meta);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let inv: any = existing || initInventory(meta);
 
   const proofs: Record<string, Array<{ file: string; snippet: string }>> = {};
   const scores: number[] = [];
@@ -149,10 +150,10 @@ export async function scanOneRepo(
   // Run all detectors
   for (const detector of detectors) {
     try {
-      const result = await detector({ tree, read, current: inv });
+      const result = await detector({ tree, read, current: inv as Record<string, unknown> });
 
       if (result.patch) {
-        inv = mergeArrays(inv, result.patch);
+        inv = mergeArrays(inv as Record<string, unknown>, result.patch);
       }
 
       if (result.proofs && result.proofs.length > 0) {
