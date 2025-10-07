@@ -46,13 +46,19 @@ export async function GET(request: NextRequest) {
 
     // TODO: Add JSONB array filtering for frameworks, deployTargets, etc.
 
-    let query = db.select().from(repoInventory);
-
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const results = await query.limit(limit).offset(offset);
+    // Execute query with conditions
+    const results = conditions.length > 0
+      ? await db
+          .select()
+          .from(repoInventory)
+          .where(and(...conditions))
+          .limit(limit)
+          .offset(offset)
+      : await db
+          .select()
+          .from(repoInventory)
+          .limit(limit)
+          .offset(offset);
 
     return NextResponse.json({
       data: results,
