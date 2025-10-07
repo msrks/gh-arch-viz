@@ -9,24 +9,28 @@ export const clientDetector: Detector = async ({ tree, read, current }) => {
   const proofs: Array<{ file: string; snippet: string }> = [];
 
   // Check for Next.js (highest priority as it includes React)
-  const hasNextConfig = tree.some((f) =>
-    ["next.config.js", "next.config.mjs", "next.config.ts"].includes(f.path || "")
+  const nextConfigFile = tree.find((f) =>
+    f.path?.endsWith("next.config.js") ||
+    f.path?.endsWith("next.config.mjs") ||
+    f.path?.endsWith("next.config.ts")
   );
 
-  if (hasNextConfig) {
+  if (nextConfigFile) {
     client = "Next.js";
-    proofs.push({ file: "next.config.js", snippet: "Next.js configuration detected" });
+    proofs.push({ file: nextConfigFile.path!, snippet: "Next.js configuration detected" });
   }
 
   // Check for Nuxt.js (highest priority as it includes Vue)
   if (!client) {
-    const hasNuxtConfig = tree.some((f) =>
-      ["nuxt.config.js", "nuxt.config.ts", ".nuxtrc"].includes(f.path || "")
+    const nuxtConfigFile = tree.find((f) =>
+      f.path?.endsWith("nuxt.config.js") ||
+      f.path?.endsWith("nuxt.config.ts") ||
+      f.path?.endsWith(".nuxtrc")
     );
 
-    if (hasNuxtConfig) {
+    if (nuxtConfigFile) {
       client = "Nuxt.js";
-      proofs.push({ file: "nuxt.config.js", snippet: "Nuxt.js configuration detected" });
+      proofs.push({ file: nuxtConfigFile.path!, snippet: "Nuxt.js configuration detected" });
     }
   }
 

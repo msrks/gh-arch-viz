@@ -7,6 +7,18 @@ export const databaseDetector: Detector = async ({ tree, read, current }) => {
   let db: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 
+  // Check for firestore.rules file
+  const firestoreRulesFile = tree.find((f) => f.path?.endsWith("firestore.rules"));
+  if (firestoreRulesFile) {
+    db = "Firestore";
+    proofs.push({ file: firestoreRulesFile.path!, snippet: "Firestore rules file detected" });
+    return {
+      patch: { db },
+      proofs,
+      score: 1.0,
+    };
+  }
+
   const pkgFile = await read("package.json");
   const reqFile = await read("requirements.txt");
   const pipFile = await read("Pipfile");

@@ -21,24 +21,27 @@ export const serverDetector: Detector = async ({ tree, read, current }) => {
     .map((f) => f.path!);
 
   // Check for Next.js (can be both client and server)
-  const hasNextConfig = tree.some((f) =>
-    ["next.config.js", "next.config.mjs", "next.config.ts"].includes(f.path || "")
+  const nextConfigFile = tree.find((f) =>
+    f.path?.endsWith("next.config.js") ||
+    f.path?.endsWith("next.config.mjs") ||
+    f.path?.endsWith("next.config.ts")
   );
 
-  if (hasNextConfig) {
+  if (nextConfigFile) {
     server = "Next.js";
-    proofs.push({ file: "next.config.js", snippet: "Next.js server detected" });
+    proofs.push({ file: nextConfigFile.path!, snippet: "Next.js server detected" });
   }
 
   // Check for Nuxt.js (can be both client and server)
   if (!server) {
-    const hasNuxtConfig = tree.some((f) =>
-      ["nuxt.config.js", "nuxt.config.ts"].includes(f.path || "")
+    const nuxtConfigFile = tree.find((f) =>
+      f.path?.endsWith("nuxt.config.js") ||
+      f.path?.endsWith("nuxt.config.ts")
     );
 
-    if (hasNuxtConfig) {
+    if (nuxtConfigFile) {
       server = "Nuxt.js";
-      proofs.push({ file: "nuxt.config.js", snippet: "Nuxt.js server detected" });
+      proofs.push({ file: nuxtConfigFile.path!, snippet: "Nuxt.js server detected" });
     }
   }
 

@@ -7,6 +7,18 @@ export const storageDetector: Detector = async ({ tree, read, current }) => {
   let storage: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 
+  // Check for storage.rules file (Firebase Storage)
+  const storageRulesFile = tree.find((f) => f.path?.endsWith("storage.rules"));
+  if (storageRulesFile) {
+    storage = "Firebase Storage";
+    proofs.push({ file: storageRulesFile.path!, snippet: "Firebase Storage rules file detected" });
+    return {
+      patch: { storage },
+      proofs,
+      score: 1.0,
+    };
+  }
+
   const pkgFile = await read("package.json");
   const reqFile = await read("requirements.txt");
   const envFile = await read(".env") || await read(".env.example") || "";
