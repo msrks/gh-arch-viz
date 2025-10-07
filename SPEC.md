@@ -22,6 +22,7 @@
 - 逸脱検出（任意ルール）
 - 再スキャン（手動/日次）
 - **Contributors 可視化**（各リポジトリの貢献者をアバターで表示）
+- **同期機能**（新規・更新されたリポジトリのみ効率的にスキャン）
 
 ## メンバー管理
 - 組織メンバー一覧の表示
@@ -207,15 +208,19 @@ export const db = drizzle(pool);
 ```
 app/
   layout.tsx
-  page.tsx                      # Public landing (Sign in)
-  app/page.tsx                  # Protected: Inventory table
-  repo/[name]/page.tsx          # Repo detail
-  insights/page.tsx             # Aggregations
-  api/auth/[...all]/route.ts    # Better Auth handler (API Route)
-  api/inventory/route.ts        # GET inventory (filter/pagination)
-  api/inventory/scan/route.ts   # POST: bulk scan (QStash enqueue)
-  api/queue/scan-repo/route.ts  # POST: QStash worker (signature verified)
-  api/repo/[id]/scan/route.ts   # POST: single scan
+  page.tsx                         # Public landing (Sign in)
+  app/page.tsx                     # Protected: Inventory table
+  repo/[name]/page.tsx             # Repo detail
+  insights/page.tsx                # Aggregations
+  members/page.tsx                 # Members management
+  api/auth/[...all]/route.ts       # Better Auth handler (API Route)
+  api/inventory/route.ts           # GET inventory (filter/pagination)
+  api/inventory/scan/route.ts      # POST: bulk scan (QStash enqueue)
+  api/inventory/scan-new/route.ts  # POST: sync (scan new/updated repos)
+  api/queue/scan-repo/route.ts     # POST: QStash worker (signature verified)
+  api/repo/[id]/scan/route.ts      # POST: single scan
+  api/members/route.ts             # GET members list
+  api/members/sync/route.ts        # POST: sync members & teams
 lib/
   auth.ts                       # Better Auth init + callbacks
   github.ts                     # Octokit helpers (list repos / read files)
@@ -225,7 +230,10 @@ lib/
   detectors/ (node.ts nextjs.ts docker.ts etc.)
 components/
   ui/ (shadcn)
-  scan-all-button.tsx           # Client component for scan trigger
+  scan-all-button.tsx           # Client component for bulk scan
+  scan-new-button.tsx           # Client component for sync (new/updated repos)
+  sync-members-button.tsx       # Client component for members sync
+  rescan-button.tsx             # Client component for single repo rescan
   (other components)
 styles/
   globals.css (Tailwind v4)

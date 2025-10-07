@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export function ScanNewButton() {
-  const [scanning, setScanning] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const router = useRouter();
 
-  const handleScan = async () => {
-    setScanning(true);
+  const handleSync = async () => {
+    setSyncing(true);
     try {
       const response = await fetch("/api/inventory/scan-new", {
         method: "POST",
@@ -18,29 +18,30 @@ export function ScanNewButton() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Successfully scanned ${result.scannedCount} new repositories`);
+        if (result.totalScanned === 0) {
+          alert("All repositories are up to date");
+        } else {
+          alert(
+            `Successfully synced ${result.totalScanned} repositories\n` +
+            `New: ${result.newCount}, Updated: ${result.updatedCount}`
+          );
+        }
         router.refresh();
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
       }
     } catch (error) {
-      alert(`Failed to scan: ${error}`);
+      alert(`Failed to sync: ${error}`);
     } finally {
-      setScanning(false);
+      setSyncing(false);
     }
   };
 
   return (
-    <Button onClick={handleScan} disabled={scanning} variant="outline">
-      {scanning ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Scanning New Repos...
-        </>
-      ) : (
-        "Scan New Repositories"
-      )}
+    <Button onClick={handleSync} disabled={syncing} variant="outline">
+      <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+      {syncing ? "Syncing..." : "Sync"}
     </Button>
   );
 }

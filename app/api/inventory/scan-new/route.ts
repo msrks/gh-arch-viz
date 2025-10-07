@@ -9,7 +9,7 @@ import { allDetectors } from "@/lib/detectors";
 
 /**
  * POST /api/inventory/scan-new
- * Scan only new repositories that haven't been added to inventory yet
+ * Sync repositories: scan new repos and rescan updated repos
  */
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
@@ -47,21 +47,44 @@ export async function POST(request: NextRequest) {
     // Get all repositories from GitHub
     const allRepos = await listOrgRepos(octokit, org);
 
-    // Get already scanned repository IDs from database
+    // Get already scanned repositories from database with pushedAt
     const existingRepos = await db
-      .select({ repoId: repoInventory.repoId })
+      .select({
+        repoId: repoInventory.repoId,
+        repoPushedAt: repoInventory.repoPushedAt,
+      })
       .from(repoInventory)
       .where(eq(repoInventory.org, org));
 
-    const existingRepoIds = new Set(existingRepos.map((r) => r.repoId));
+    // Create map for fast lookup: repoId -> repoPushedAt
+    const existingRepoMap = new Map(
+      existingRepos.map((r) => [r.repoId, r.repoPushedAt])
+    );
 
-    // Filter only new repositories
-    const newRepos = allRepos.filter((repo) => !existingRepoIds.has(repo.repoId));
+    // Separate repos into new and updated
+    const newRepos = [];
+    const updatedRepos = [];
 
-    if (newRepos.length === 0) {
+    for (const repo of allRepos) {
+      const existingPushedAt = existingRepoMap.get(repo.repoId);
+
+      if (!existingPushedAt) {
+        // New repository
+        newRepos.push(repo);
+      } else if (repo.pushedAt && repo.pushedAt > existingPushedAt) {
+        // Updated repository (pushedAt is newer)
+        updatedRepos.push(repo);
+      }
+    }
+
+    const totalToScan = newRepos.length + updatedRepos.length;
+
+    if (totalToScan === 0) {
       return NextResponse.json({
-        message: "No new repositories to scan",
-        scannedCount: 0,
+        message: "All repositories are up to date",
+        newCount: 0,
+        updatedCount: 0,
+        totalScanned: 0,
       });
     }
 
@@ -91,14 +114,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Rescan updated repositories
+    for (const repo of updatedRepos) {
+      try {
+        await scanOneRepo(
+          octokit,
+          repo.owner,
+          repo.name,
+          {
+            org,
+            repoId: repo.repoId,
+            name: repo.name,
+            url: repo.url,
+            defaultBranch: repo.defaultBranch,
+            visibility: repo.visibility,
+            primaryLanguage: repo.primaryLanguage,
+            updatedAt: repo.updatedAt,
+            pushedAt: repo.pushedAt,
+          },
+          allDetectors
+        );
+        console.log(`Rescanned updated repo: ${repo.name}`);
+      } catch (error) {
+        console.error(`Failed to rescan updated repo ${repo.name}:`, error);
+      }
+    }
+
     return NextResponse.json({
-      message: `Successfully scanned ${newRepos.length} new repositories`,
-      scannedCount: newRepos.length,
+      message: `Successfully synced ${totalToScan} repositories (${newRepos.length} new, ${updatedRepos.length} updated)`,
+      newCount: newRepos.length,
+      updatedCount: updatedRepos.length,
+      totalScanned: totalToScan,
     });
   } catch (error) {
-    console.error("Failed to scan new repositories:", error);
+    console.error("Failed to sync repositories:", error);
     return NextResponse.json(
-      { error: "Failed to scan new repositories" },
+      { error: "Failed to sync repositories" },
       { status: 500 }
     );
   }
