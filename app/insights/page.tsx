@@ -137,7 +137,7 @@ export default function InsightsPage() {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Technology Insights</h1>
+          <h1 className="text-2xl font-bold">Technology Insights</h1>
           <p className="text-muted-foreground mt-1">
             Aggregated analysis of {data.length} repositories
           </p>

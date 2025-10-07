@@ -76,7 +76,7 @@ export default async function RepoDetailPage({
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold mb-2">{repo.repoName}</h1>
+            <h1 className="text-2xl font-bold mb-2">{repo.repoName}</h1>
             <div className="flex gap-2 items-center text-muted-foreground">
               <a
                 href={repo.url}
