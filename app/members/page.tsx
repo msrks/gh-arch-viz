@@ -153,7 +153,7 @@ export default async function MembersPage() {
                         </a>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground">
                       {member.lastActiveAt
                         ? formatRelativeTime(new Date(member.lastActiveAt))
                         : "-"}
