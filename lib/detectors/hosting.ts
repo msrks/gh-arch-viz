@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect hosting: Vercel, CloudRun, EC2, Docker, Firebase Hosting
  */
-export const hostingDetector: Detector = async ({ tree, read, current }) => {
+export const hostingDetector: Detector = async ({ tree, read }) => {
   let hosting: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

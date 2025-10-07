@@ -18,15 +18,21 @@ export function findFiles(tree: Tree, pattern: string | ((path: string) => boole
     .map((f) => f.path!);
 }
 
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  [key: string]: unknown;
+}
+
 /**
  * Read and parse all package.json files in the repository
  */
 export async function readAllPackageJson(
   tree: Tree,
   read: ReadFn
-): Promise<Array<{ path: string; data: any }>> {
+): Promise<Array<{ path: string; data: PackageJson }>> {
   const packageJsonFiles = findFiles(tree, "package.json");
-  const results: Array<{ path: string; data: any }> = [];
+  const results: Array<{ path: string; data: PackageJson }> = [];
 
   for (const pkgPath of packageJsonFiles) {
     const content = await read(pkgPath);

@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect database: Neon, Supabase, Firestore, AWS RDB, AWS DynamoDB, AWS Aurora, MongoDB, Redis
  */
-export const databaseDetector: Detector = async ({ tree, read, current }) => {
+export const databaseDetector: Detector = async ({ tree, read }) => {
   let db: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

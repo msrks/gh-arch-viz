@@ -95,11 +95,11 @@ export const repoInventory = pgTable(
 
     lastScannedAt: timestamp("last_scanned_at"),
     detectionScore: real("detection_score"),
-    evidence: jsonb("evidence").$type<Record<string, any>>().default({}),
+    evidence: jsonb("evidence").$type<Record<string, unknown>>().default({}),
     missingSignals: jsonb("missing_signals").$type<string[]>().default([]),
 
     policyStatus: text("policy_status"), // compliant / drift / unknown
-    policyViolations: jsonb("policy_violations").$type<Record<string, any>>(),
+    policyViolations: jsonb("policy_violations").$type<Record<string, unknown>>(),
 
     // GitHub repository metadata
     repoUpdatedAt: timestamp("repo_updated_at"), // Last update from GitHub (pushed_at)

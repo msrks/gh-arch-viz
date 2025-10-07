@@ -2,18 +2,18 @@ import type { Octokit } from "@octokit/rest";
 import { db } from "@/lib/db";
 import { repoInventory } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getRepoTree, getText, listRepoContributors, listRepoLanguages } from "./github";
+import { getRepoTree, listRepoContributors, listRepoLanguages } from "./github";
 import { createId } from "@paralleldrive/cuid2";
 import { batchReadFiles, createCachedReader } from "./batch-reader";
 
 export type DetectorContext = {
   tree: { path?: string; type?: string }[];
   read: (path: string) => Promise<string | null>;
-  current: any;
+  current: Record<string, unknown>;
 };
 
 export type DetectorResult = {
-  patch?: Partial<any>;
+  patch?: Record<string, unknown>;
   proofs?: Array<{ file: string; snippet: string }>;
   score?: number;
 };
@@ -81,7 +81,7 @@ export function initInventory(meta: {
 /**
  * Merge array fields from detector patches
  */
-export function mergeArrays(current: any, patch: Partial<any>): any {
+export function mergeArrays(current: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
   const merged = { ...current };
 
   for (const [key, value] of Object.entries(patch)) {
@@ -141,9 +141,9 @@ export async function scanOneRepo(
     ),
   });
 
-  let inv = existing || initInventory(meta);
+  let inv: Record<string, unknown> = existing || initInventory(meta);
 
-  const proofs: Record<string, any[]> = {};
+  const proofs: Record<string, Array<{ file: string; snippet: string }>> = {};
   const scores: number[] = [];
 
   // Run all detectors

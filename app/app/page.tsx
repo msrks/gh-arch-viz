@@ -414,7 +414,7 @@ export default async function AppPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <RescanButton repoId={repo.id} />
+                      <RescanButton repoId={repo.id} repoFullName={repo.repoName || ""} />
                     </TableCell>
                   </TableRow>
                 ))

@@ -27,7 +27,6 @@ export function ContributorsAvatars({
   }
 
   const displayContributors = contributors.slice(0, maxDisplay);
-  const remaining = contributors.length - maxDisplay;
 
   return (
     <TooltipProvider>

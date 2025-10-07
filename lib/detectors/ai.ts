@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect AI services: opencv, sagemaker, vertex-ai
  */
-export const aiDetector: Detector = async ({ tree, read, current }) => {
+export const aiDetector: Detector = async ({ read }) => {
   let ai: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

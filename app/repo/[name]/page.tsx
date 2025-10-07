@@ -36,7 +36,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ nam
     );
   }
 
-  const evidence = (repo.evidence as Record<string, any[]>) || {};
+  const evidence = (repo.evidence as Record<string, Array<{ file: string; snippet: string }>>) || {};
 
   return (
     <div className="min-h-screen p-8">
@@ -222,7 +222,7 @@ export default async function RepoDetailPage({ params }: { params: Promise<{ nam
                           </SheetDescription>
                         </SheetHeader>
                         <div className="mt-6 space-y-4">
-                          {proofs.map((proof: any, idx: number) => (
+                          {proofs.map((proof: { file: string; snippet: string }, idx: number) => (
                             <div key={idx} className="border rounded p-3">
                               <p className="text-sm font-medium mb-2">{proof.file}</p>
                               <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">

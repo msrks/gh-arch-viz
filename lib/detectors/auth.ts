@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect auth: AWS Cognito, Firebase Auth, Next-Auth, Better-Auth
  */
-export const authDetector: Detector = async ({ tree, read, current }) => {
+export const authDetector: Detector = async ({ read }) => {
   let auth: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

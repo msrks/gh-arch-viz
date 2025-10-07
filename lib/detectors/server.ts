@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect server framework: Flask, FastAPI, Next.js, Nuxt.js, Express.js
  */
-export const serverDetector: Detector = async ({ tree, read, current }) => {
+export const serverDetector: Detector = async ({ tree, read }) => {
   let server: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

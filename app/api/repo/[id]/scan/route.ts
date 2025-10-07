@@ -72,10 +72,11 @@ export async function POST(
       message: "Scan completed",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     console.error(`Failed to scan repository ${repoId}:`, error);
     return NextResponse.json(
-      { error: "Scan failed", message: error.message },
+      { error: "Scan failed", message: err.message || "Unknown error" },
       { status: 500 }
     );
   }

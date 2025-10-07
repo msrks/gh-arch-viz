@@ -84,8 +84,9 @@ export async function getRepoTree(
     });
 
     return tree.tree; // [{ path, type, sha }]
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 404) {
       console.warn(`Branch ${branch} not found in ${owner}/${repo}`);
       return [];
     }
@@ -114,8 +115,9 @@ export async function getText(
     }
 
     return null;
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 404) {
       return null;
     }
     throw error;
@@ -221,9 +223,10 @@ export async function listRepoLanguages(
       .sort((a, b) => b.percentage - a.percentage);
 
     return languages;
-  } catch (error: any) {
-    if (error.status === 404 || error.status === 403) {
-      console.warn(`Could not fetch languages for ${owner}/${repo}:`, error.message);
+  } catch (error: unknown) {
+    const err = error as { status?: number; message?: string };
+    if (err.status === 404 || err.status === 403) {
+      console.warn(`Could not fetch languages for ${owner}/${repo}:`, err.message || "Unknown error");
       return [];
     }
     throw error;
@@ -262,10 +265,11 @@ export async function listRepoContributors(
         profileUrl: c.html_url || "",
         contributions: c.contributions || 0,
       }));
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { status?: number; message?: string };
     // Handle 404 (empty repo, no contributors) or 403 (rate limit)
-    if (error.status === 404 || error.status === 403) {
-      console.warn(`Could not fetch contributors for ${owner}/${repo}:`, error.message);
+    if (err.status === 404 || err.status === 403) {
+      console.warn(`Could not fetch contributors for ${owner}/${repo}:`, err.message || "Unknown error");
       return [];
     }
     throw error;

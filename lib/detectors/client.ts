@@ -4,7 +4,7 @@ import { hasPackageDependency } from "./helpers";
 /**
  * Detect client framework: Vue, React, Next.js, Nuxt.js
  */
-export const clientDetector: Detector = async ({ tree, read, current }) => {
+export const clientDetector: Detector = async ({ tree, read }) => {
   let client: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

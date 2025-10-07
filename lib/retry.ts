@@ -10,7 +10,8 @@ export async function withRetry<T>(
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { status?: number; message?: string };
       // Last attempt - throw the error
       if (i === maxRetries - 1) {
         throw err;
@@ -18,10 +19,10 @@ export async function withRetry<T>(
 
       // Check if it's a rate limit or abuse detection error
       const shouldRetry =
-        err.status === 403 ||
-        err.status === 429 ||
-        err.status === 502 ||
-        err.status === 503;
+        error.status === 403 ||
+        error.status === 429 ||
+        error.status === 502 ||
+        error.status === 503;
 
       if (!shouldRetry) {
         // For other errors, throw immediately
@@ -32,7 +33,7 @@ export async function withRetry<T>(
       const delay = delayMs * Math.pow(2, i);
       console.warn(
         `Retry attempt ${i + 1}/${maxRetries} after ${delay}ms. Error:`,
-        err.message
+        error.message || "Unknown error"
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }

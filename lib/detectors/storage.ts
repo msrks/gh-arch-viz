@@ -3,7 +3,7 @@ import type { Detector } from "../scan";
 /**
  * Detect storage: S3, Vercel Blob, GCS, Firebase Storage
  */
-export const storageDetector: Detector = async ({ tree, read, current }) => {
+export const storageDetector: Detector = async ({ tree, read }) => {
   let storage: string | null = null;
   const proofs: Array<{ file: string; snippet: string }> = [];
 

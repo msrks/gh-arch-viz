@@ -27,7 +27,12 @@ export const detectNode: Detector = async ({ tree, read }) => {
       ...pkg.devDependencies,
     };
 
-    const patch: any = {
+    const patch: {
+      buildTools: string[];
+      packageManagers: string[];
+      testing: string[];
+      lintFormat: string[];
+    } = {
       buildTools: [],
       packageManagers: [],
       testing: [],
