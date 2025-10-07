@@ -8,9 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { LanguageIcon } from "@/components/language-icon";
 import Image from "next/image";
@@ -126,11 +123,9 @@ export default function InsightsPage() {
     .slice(0, 10);
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center mb-8">
-          <h1 className="text-2xl font-bold">Technology Insights</h1>
-
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center mb-2">
           <PageNav />
 
           <p className="text-muted-foreground text-xs">
@@ -138,7 +133,7 @@ export default function InsightsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           {/* Languages Distribution */}
           <Card>
             <CardHeader>
@@ -186,7 +181,7 @@ export default function InsightsPage() {
                               />
                               <span className="font-semibold">{data.name}</span>
                             </div>
-                            <p className="text-sm mt-1">
+                            <p className="text-xs mt-1">
                               Repositories: {data.value}
                             </p>
                           </div>
@@ -209,14 +204,14 @@ export default function InsightsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {topContributors.map((contributor, index) => (
                   <div
                     key={contributor.login}
                     className="flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-muted-foreground w-6">
+                      <span className="text-xs font-semibold text-muted-foreground w-6">
                         #{index + 1}
                       </span>
                       <a
@@ -233,8 +228,10 @@ export default function InsightsPage() {
                           className="rounded-full"
                         />
                         <div>
-                          <p className="font-medium">{contributor.login}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-medium text-sm">
+                            {contributor.login}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
                             {contributor.repoCount}{" "}
                             {contributor.repoCount === 1
                               ? "repository"
@@ -244,7 +241,7 @@ export default function InsightsPage() {
                       </a>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">
+                      <p className="font-bold text-sm">
                         {contributor.totalContributions.toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground">

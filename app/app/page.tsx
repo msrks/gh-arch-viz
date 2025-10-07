@@ -77,10 +77,7 @@ export default async function AppPage() {
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center mb-2">
-          <h1 className="text-2xl font-bold">gh inspector</h1>
-
           <PageNav />
-
           <div className="flex gap-2 items-center">
             <span className="text-muted-foreground text-xs">
               scanned {inventory.length} repos

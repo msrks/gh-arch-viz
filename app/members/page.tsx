@@ -98,10 +98,7 @@ export default async function MembersPage() {
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center mb-2">
-          <h1 className="text-2xl font-bold">Organization Members</h1>
-
           <PageNav />
-
           <div className="flex gap-2 items-center">
             <p className="text-muted-foreground text-xs">
               {members.length} members in {org}
@@ -146,19 +143,14 @@ export default async function MembersPage() {
                             {member.username.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div className="font-medium">
-                            {member.name || member.username}
-                          </div>
-                          <a
-                            href={member.profileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-muted-foreground hover:underline"
-                          >
-                            View Profile
-                          </a>
-                        </div>
+                        <a
+                          href={member.profileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium hover:underline"
+                        >
+                          {member.name || member.username}
+                        </a>
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

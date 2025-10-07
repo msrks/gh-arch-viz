@@ -13,6 +13,8 @@ export function PageNav() {
 
   return (
     <div className="flex gap-2 items-center ml-6 mr-auto">
+      <h1 className="text-2xl font-bold mr-4">gh inspector</h1>
+
       <Link href="/app">
         <Button variant={isActive("/app") ? "default" : "link"}>
           Repositories
