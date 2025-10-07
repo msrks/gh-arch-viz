@@ -16,6 +16,12 @@ interface InventoryData {
   ciCd: string[];
   container: string[];
   infraAsCode: string[];
+  contributors: Array<{
+    login: string;
+    avatarUrl: string;
+    profileUrl: string;
+    contributions: number;
+  }> | null;
 }
 
 export default function InsightsPage() {
@@ -23,7 +29,8 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/inventory")
+    // Fetch all repositories by setting a high limit
+    fetch("/api/inventory?limit=1000")
       .then((res) => res.json())
       .then((result) => {
         setData(result.data || []);
@@ -106,6 +113,36 @@ export default function InsightsPage() {
     value,
   }));
 
+  // Aggregate contributors
+  const contributorStats = data.reduce((acc, repo) => {
+    if (repo.contributors) {
+      repo.contributors.forEach((contributor) => {
+        if (!acc[contributor.login]) {
+          acc[contributor.login] = {
+            login: contributor.login,
+            avatarUrl: contributor.avatarUrl,
+            profileUrl: contributor.profileUrl,
+            totalContributions: 0,
+            repoCount: 0,
+          };
+        }
+        acc[contributor.login].totalContributions += contributor.contributions;
+        acc[contributor.login].repoCount += 1;
+      });
+    }
+    return acc;
+  }, {} as Record<string, { login: string; avatarUrl: string; profileUrl: string; totalContributions: number; repoCount: number }>);
+
+  const topContributors = Object.values(contributorStats)
+    .sort((a, b) => b.totalContributions - a.totalContributions)
+    .slice(0, 10);
+
+  const topContributorData = topContributors.map((c) => ({
+    name: c.login,
+    contributions: c.totalContributions,
+    repos: c.repoCount,
+  }));
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
@@ -139,8 +176,8 @@ export default function InsightsPage() {
                     data={languageData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label
+                    labelLine={true}
+                    label={(entry) => `${entry.name} (${entry.value})`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -241,6 +278,25 @@ export default function InsightsPage() {
             </CardContent>
           </Card>
 
+          {/* Top Contributors */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Contributors</CardTitle>
+              <CardDescription>Most active contributors across all repositories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topContributorData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="contributions" fill="#8884d8" name="Total Contributions" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
           {/* Summary Stats */}
           <Card>
             <CardHeader>
@@ -263,6 +319,10 @@ export default function InsightsPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Deploy Platforms</span>
                 <span className="font-bold">{Object.keys(deployCounts).length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Contributors</span>
+                <span className="font-bold">{Object.keys(contributorStats).length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Using CI/CD</span>
