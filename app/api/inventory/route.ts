@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { repoInventory } from "@/lib/db/schema";
 import { requireAuth } from "@/lib/middleware/auth";
-import { eq, like } from "drizzle-orm";
+import { eq, like, and, SQL } from "drizzle-orm";
 
 /**
  * GET /api/inventory
@@ -29,22 +29,28 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get("search");
 
   try {
-    let query = db.select().from(repoInventory);
+    // Build where conditions
+    const conditions: SQL[] = [];
 
-    // Apply filters (simplified implementation)
     if (org) {
-      query = query.where(eq(repoInventory.org, org));
+      conditions.push(eq(repoInventory.org, org));
     }
 
     if (lang) {
-      query = query.where(eq(repoInventory.primaryLanguage, lang));
+      conditions.push(eq(repoInventory.primaryLanguage, lang));
     }
 
     if (search) {
-      query = query.where(like(repoInventory.repoName, `%${search}%`));
+      conditions.push(like(repoInventory.repoName, `%${search}%`));
     }
 
     // TODO: Add JSONB array filtering for frameworks, deployTargets, etc.
+
+    let query = db.select().from(repoInventory);
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
 
     const results = await query.limit(limit).offset(offset);
 
