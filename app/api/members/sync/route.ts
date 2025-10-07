@@ -163,8 +163,8 @@ export async function POST(request: NextRequest) {
             .set({
               slug: team.slug,
               name: team.name,
-              description: team.description,
-              privacy: team.privacy,
+              description: team.description || null,
+              privacy: team.privacy || "secret",
               lastSyncedAt: new Date(),
               updatedAt: new Date(),
             })
@@ -178,8 +178,8 @@ export async function POST(request: NextRequest) {
             teamId: team.teamId,
             slug: team.slug,
             name: team.name,
-            description: team.description,
-            privacy: team.privacy,
+            description: team.description || null,
+            privacy: team.privacy || "secret",
             lastSyncedAt: new Date(),
           });
           teamDbId = newTeamId;
