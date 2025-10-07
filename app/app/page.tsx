@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ScanAllButton } from "@/components/scan-all-button";
+import { ScanNewButton } from "@/components/scan-new-button";
 import { ContributorsAvatars } from "@/components/contributors-avatars";
 import { LanguageIcon } from "@/components/language-icon";
 import { RescanButton } from "@/components/rescan-button";
@@ -167,6 +168,7 @@ export default async function AppPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <ScanNewButton />
             <ScanAllButton />
             <Link href="/members">
               <Button variant="secondary">View Members</Button>

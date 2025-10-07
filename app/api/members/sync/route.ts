@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth";
-import { makeOctokit, listOrgMembers, getUserDetails, getMemberRole } from "@/lib/github";
+import { makeOctokit, listOrgMembers, getUserDetails, getMemberRole, listOrgTeams, listTeamMembers, getTeamMembershipRole } from "@/lib/github";
 import { db } from "@/lib/db";
-import { orgMembers, account } from "@/lib/db/schema";
+import { orgMembers, account, repoInventory, teams, teamMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -66,6 +66,33 @@ export async function POST(request: NextRequest) {
                 ),
             });
 
+            // Calculate repository count, total contributions, and last active date from repo_inventory
+            const repos = await db.query.repoInventory.findMany({
+              where: (fields, { eq }) => eq(fields.org, org),
+            });
+
+            let repositoryCount = 0;
+            let totalContributions = 0;
+            let lastActiveAt: Date | null = null;
+
+            for (const repo of repos) {
+              if (repo.contributors) {
+                const contributor = repo.contributors.find(
+                  (c: { login: string }) => c.login === member.username
+                );
+                if (contributor) {
+                  repositoryCount++;
+                  totalContributions += (contributor as { contributions: number }).contributions;
+                  // Update lastActiveAt to the most recent repo push date
+                  if (repo.repoPushedAt) {
+                    if (!lastActiveAt || repo.repoPushedAt > lastActiveAt) {
+                      lastActiveAt = repo.repoPushedAt;
+                    }
+                  }
+                }
+              }
+            }
+
             if (existingMember) {
               // Update existing member
               await db
@@ -75,6 +102,9 @@ export async function POST(request: NextRequest) {
                   avatarUrl: member.avatarUrl,
                   profileUrl: member.profileUrl,
                   role,
+                  repositoryCount,
+                  totalContributions,
+                  lastActiveAt,
                   lastSyncedAt: new Date(),
                   updatedAt: new Date(),
                 })
@@ -92,6 +122,9 @@ export async function POST(request: NextRequest) {
                   avatarUrl: member.avatarUrl,
                   profileUrl: member.profileUrl,
                   role,
+                  repositoryCount,
+                  totalContributions,
+                  lastActiveAt,
                   lastSyncedAt: new Date(),
                 });
             }
@@ -108,11 +141,89 @@ export async function POST(request: NextRequest) {
       results.push(...batchResults);
     }
 
+    // Sync teams and team memberships
+    console.log("Syncing teams...");
+    const orgTeams = await listOrgTeams(octokit, org);
+
+    for (const team of orgTeams) {
+      try {
+        // Upsert team
+        const existingTeam = await db.query.teams.findFirst({
+          where: (fields, { and, eq }) =>
+            and(
+              eq(fields.org, org),
+              eq(fields.teamId, team.teamId)
+            ),
+        });
+
+        let teamDbId: string;
+        if (existingTeam) {
+          await db
+            .update(teams)
+            .set({
+              slug: team.slug,
+              name: team.name,
+              description: team.description,
+              privacy: team.privacy,
+              lastSyncedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(teams.id, existingTeam.id));
+          teamDbId = existingTeam.id;
+        } else {
+          const newTeamId = nanoid(32);
+          await db.insert(teams).values({
+            id: newTeamId,
+            org,
+            teamId: team.teamId,
+            slug: team.slug,
+            name: team.name,
+            description: team.description,
+            privacy: team.privacy,
+            lastSyncedAt: new Date(),
+          });
+          teamDbId = newTeamId;
+        }
+
+        // Sync team members
+        const teamMembersList = await listTeamMembers(octokit, org, team.slug);
+
+        // Delete old team memberships
+        await db.delete(teamMembers).where(eq(teamMembers.teamId, teamDbId));
+
+        // Insert new team memberships
+        for (const teamMember of teamMembersList) {
+          const orgMember = await db.query.orgMembers.findFirst({
+            where: (fields, { and, eq }) =>
+              and(
+                eq(fields.org, org),
+                eq(fields.username, teamMember.username)
+              ),
+          });
+
+          if (orgMember) {
+            const memberRole = await getTeamMembershipRole(octokit, org, team.slug, teamMember.username);
+            await db.insert(teamMembers).values({
+              id: nanoid(32),
+              teamId: teamDbId,
+              memberId: orgMember.id,
+              role: memberRole,
+            });
+          }
+        }
+
+        console.log(`Synced team: ${team.name} (${teamMembersList.length} members)`);
+      } catch (error) {
+        console.error(`Failed to sync team ${team.name}:`, error);
+      }
+    }
+
     return NextResponse.json({
       message: "Member sync completed",
       results,
       synced: results.filter((r) => r.status === "success").length,
       failed: results.filter((r) => r.status === "error").length,
+      teams: orgTeams.length,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

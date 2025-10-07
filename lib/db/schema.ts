@@ -137,6 +137,7 @@ export const orgMembers = pgTable(
 
     // Statistics (cached)
     repositoryCount: integer("repository_count").default(0),
+    totalContributions: integer("total_contributions").default(0),
     lastActiveAt: timestamp("last_active_at"),
 
     // Metadata
@@ -146,5 +147,42 @@ export const orgMembers = pgTable(
   },
   (table) => ({
     orgUsernameUnique: uniqueIndex("org_username_unique").on(table.org, table.username),
+  })
+);
+
+export const teams = pgTable(
+  "teams",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    org: text("org").notNull(),
+    teamId: integer("team_id").notNull(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    privacy: text("privacy").notNull(), // "secret" | "closed"
+
+    // Metadata
+    lastSyncedAt: timestamp("last_synced_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgTeamIdUnique: uniqueIndex("org_team_id_unique").on(table.org, table.teamId),
+  })
+);
+
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    teamId: varchar("team_id", { length: 32 }).notNull().references(() => teams.id, { onDelete: "cascade" }),
+    memberId: varchar("member_id", { length: 32 }).notNull().references(() => orgMembers.id, { onDelete: "cascade" }),
+    role: text("role").notNull(), // "maintainer" | "member"
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    teamMemberUnique: uniqueIndex("team_member_unique").on(table.teamId, table.memberId),
   })
 );

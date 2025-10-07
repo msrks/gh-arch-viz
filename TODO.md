@@ -282,15 +282,40 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
   - [x] リポジトリ一覧ページに "View Members" ボタン追加
   - [x] メンバーページに "View Repositories" ボタン追加
 
-### 5.5 拡張機能（今後の改善）
+### 5.5 統計情報の追加
 
-- [ ] **統計情報の追加**
-  - [ ] リポジトリ数のカウント（実際のcontribution数）
-  - [ ] 最終アクティビティの取得・表示（GitHub API連携）
+- [x] **統計情報の追加**
+  - [x] リポジトリ数のカウント（contributorとして登録されているリポジトリ数）
+  - [x] 総貢献数の取得・表示（Total Contributions）
+  - [x] 最終アクティビティの取得・表示（最新のrepoPushedAt）
+  - [x] Last Active が NULL のメンバーを最後尾に表示
+
+### 5.6 チーム管理機能
+
+- [x] **データベーススキーマ**
+  - [x] `teams` テーブル作成（id, org, teamId, slug, name, description, privacy）
+  - [x] `teamMembers` テーブル作成（id, teamId, memberId, role）
+  - [x] 外部キー制約設定（cascade delete）
+
+- [x] **GitHub API 統合**
+  - [x] `lib/github.ts` に `listOrgTeams()` 追加
+  - [x] `lib/github.ts` に `listTeamMembers()` 追加
+  - [x] `lib/github.ts` に `getTeamMembershipRole()` 追加
+
+- [x] **API エンドポイント**
+  - [x] `/api/members/sync` でチーム情報も同期
+  - [x] チームメンバーシップの取得・保存
+
+- [x] **UI 実装**
+  - [x] `/app/members/page.tsx` に Teams カラム追加
+  - [x] 各メンバーの所属チームをバッジ表示
+
+### 5.7 拡張機能（今後の改善）
 
 - [ ] **検索・フィルタ**
   - [ ] ユーザー名・表示名検索
   - [ ] ロールフィルタ (Admin/Member)
+  - [ ] チームフィルタ
 
 - [ ] **ページネーション**
   - [ ] 大規模組織対応
@@ -393,6 +418,18 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 - **リポジトリ名トランケート**: 30文字以上は省略表示（ホバーで全文表示）
 - **ソート改善**: GitHub repo の最終push日時（`repo_pushed_at`）でソート
 
+### メンバー管理機能の拡張（2025-10-07）
+
+- **統計情報の追加**: `org_members` テーブルに `totalContributions` フィールド追加
+- **チーム管理**: `teams` と `teamMembers` テーブルを新規作成し、メンバーのチーム所属を可視化
+- **GitHub API拡張**: チーム情報取得関数（`listOrgTeams`, `listTeamMembers`, `getTeamMembershipRole`）追加
+- **メンバーページUI改善**:
+  - Username/Role 列を削除してシンプル化
+  - Last Active を2列目に移動
+  - Contributions 列追加
+  - Teams 列追加（バッジ表示）
+  - NULL の Last Active は最後尾にソート
+
 ### 実装優先度
 
 **MVP（最小限）**: Phase 1 全て + Phase 2 全て + Phase 3.2（メインテーブルのみ）
@@ -417,17 +454,18 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 - ✅ Phase 2: コア機能（GitHub 連携・スキャナー・API・**QStash バックグラウンドジョブ**）
 - ✅ Phase 3: UI/UX（ランディング・メインテーブル・詳細・インサイト）
 - ✅ Phase 4: デプロイ準備・ドキュメント
-- ✅ Phase 5: メンバー管理（組織メンバー一覧・ロール・アバター表示）
+- ✅ Phase 5: メンバー管理（組織メンバー一覧・ロール・アバター表示・**統計情報・チーム管理**）
 - ✅ Phase 6: Contributors 可視化（アバター重ね表示・貢献数表示）
 - ✅ Phase 7: 複数言語サポート（20%以上の言語を全て表示・割合表示）
 
 **次のステップ**:
 
 1. ~~Upstash QStash アカウント作成・トークン取得~~ ✅
-2. メンバー管理機能の拡張（統計情報、検索・フィルタ、ページネーション）
-3. 本番環境でのテスト
-4. パフォーマンス最適化（必要に応じて）
+2. ~~メンバー管理機能の拡張（統計情報、チーム管理）~~ ✅
+3. メンバー管理機能の更なる拡張（検索・フィルタ、ページネーション）
+4. 本番環境でのテスト
+5. パフォーマンス最適化（必要に応じて）
 
 ---
 
-**進捗率**: 約 105/115 項目完了 (91%)
+**進捗率**: 約 115/120 項目完了 (96%)

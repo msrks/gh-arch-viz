@@ -26,8 +26,9 @@
 ## メンバー管理
 - 組織メンバー一覧の表示
 - メンバーのロール確認（Admin/Member）
-- メンバーのアクティビティ可視化
+- メンバーのアクティビティ可視化（Last Active、Repository Count、Total Contributions）
 - メンバー情報の同期
+- チーム所属情報の表示（複数チーム対応）
 
 ---
 
@@ -115,6 +116,16 @@ export const repoInventory = pgTable("repo_inventory", {
   testing: jsonb("testing").$type<string[]>().default([]),
   lintFormat: jsonb("lint_format").$type<string[]>().default([]),
 
+  // Contributors information
+  contributors: jsonb("contributors").$type<Array<{
+    login: string;
+    avatarUrl: string;
+    profileUrl: string;
+    contributions: number;
+  }>>(),
+  contributorsCount: integer("contributors_count").default(0),
+  contributorsUpdatedAt: timestamp("contributors_updated_at"),
+
   lastScannedAt: timestamp("last_scanned_at"),
   detectionScore: real("detection_score"),
   evidence: jsonb("evidence").$type<Record<string, any>>().default({}),
@@ -122,6 +133,50 @@ export const repoInventory = pgTable("repo_inventory", {
 
   policyStatus: text("policy_status"), // compliant / drift / unknown
   policyViolations: jsonb("policy_violations").$type<Record<string, any>>(),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const orgMembers = pgTable("org_members", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  org: text("org").notNull(),
+  username: text("username").notNull(),
+  userId: integer("user_id").notNull(),
+  name: text("name"),
+  avatarUrl: text("avatar_url").notNull(),
+  profileUrl: text("profile_url").notNull(),
+  role: text("role").notNull(), // "admin" | "member"
+
+  // Statistics (cached)
+  repositoryCount: integer("repository_count").default(0),
+  totalContributions: integer("total_contributions").default(0),
+  lastActiveAt: timestamp("last_active_at"),
+
+  lastSyncedAt: timestamp("last_synced_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const teams = pgTable("teams", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  org: text("org").notNull(),
+  teamId: integer("team_id").notNull(),
+  slug: text("slug").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  privacy: text("privacy").notNull(), // "secret" | "closed"
+
+  lastSyncedAt: timestamp("last_synced_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const teamMembers = pgTable("team_members", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  teamId: varchar("team_id", { length: 32 }).notNull().references(() => teams.id, { onDelete: "cascade" }),
+  memberId: varchar("member_id", { length: 32 }).notNull().references(() => orgMembers.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // "maintainer" | "member"
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

@@ -192,6 +192,72 @@ export async function getMemberRole(
 }
 
 /**
+ * List all teams in an organization
+ */
+export async function listOrgTeams(
+  octokit: Octokit,
+  org: string
+) {
+  const teams = await octokit.paginate(octokit.rest.teams.list, {
+    org,
+    per_page: 100,
+  });
+
+  return teams.map((t) => ({
+    teamId: t.id,
+    slug: t.slug,
+    name: t.name,
+    description: t.description,
+    privacy: t.privacy,
+  }));
+}
+
+/**
+ * List all members of a team
+ */
+export async function listTeamMembers(
+  octokit: Octokit,
+  org: string,
+  teamSlug: string
+) {
+  const members = await octokit.paginate(octokit.rest.teams.listMembersInOrg, {
+    org,
+    team_slug: teamSlug,
+    per_page: 100,
+  });
+
+  return members.map((m) => ({
+    username: m.login,
+    userId: m.id,
+  }));
+}
+
+/**
+ * Get team membership role for a user
+ */
+export async function getTeamMembershipRole(
+  octokit: Octokit,
+  org: string,
+  teamSlug: string,
+  username: string
+): Promise<"maintainer" | "member"> {
+  try {
+    const { data } = await octokit.rest.teams.getMembershipForUserInOrg({
+      org,
+      team_slug: teamSlug,
+      username,
+    });
+    return data.role as "maintainer" | "member";
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 404) {
+      return "member"; // Default to member if not found
+    }
+    throw error;
+  }
+}
+
+/**
  * List repository languages (only those with >= threshold percentage)
  */
 export async function listRepoLanguages(

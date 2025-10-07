@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { orgMembers } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { orgMembers, teamMembers, teams } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -57,12 +57,39 @@ export default async function MembersPage() {
 
   const org = process.env.ALLOWED_GH_ORG!;
 
-  // Fetch members (ordered by last active date descending)
-  const members = await db
+  // Fetch members and sort by last active date (NULL values last)
+  const allMembers = await db
     .select()
     .from(orgMembers)
-    .where(eq(orgMembers.org, org))
-    .orderBy(desc(orgMembers.lastActiveAt));
+    .where(eq(orgMembers.org, org));
+
+  // Fetch all team memberships
+  const allTeamMemberships = await db
+    .select({
+      memberId: teamMembers.memberId,
+      teamName: teams.name,
+    })
+    .from(teamMembers)
+    .leftJoin(teams, eq(teamMembers.teamId, teams.id));
+
+  // Group teams by member
+  const memberTeamsMap = new Map<string, string[]>();
+  for (const tm of allTeamMemberships) {
+    if (!memberTeamsMap.has(tm.memberId)) {
+      memberTeamsMap.set(tm.memberId, []);
+    }
+    if (tm.teamName) {
+      memberTeamsMap.get(tm.memberId)!.push(tm.teamName);
+    }
+  }
+
+  // Sort: active members first (desc), then NULL values last
+  const members = allMembers.sort((a, b) => {
+    if (a.lastActiveAt === null && b.lastActiveAt === null) return 0;
+    if (a.lastActiveAt === null) return 1;
+    if (b.lastActiveAt === null) return -1;
+    return new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime();
+  });
 
   return (
     <div className="min-h-screen p-8">
@@ -87,10 +114,10 @@ export default async function MembersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Member</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Repositories</TableHead>
                 <TableHead>Last Active</TableHead>
+                <TableHead>Repositories</TableHead>
+                <TableHead>Contributions</TableHead>
+                <TableHead>Teams</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -122,21 +149,25 @@ export default async function MembersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      @{member.username}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={member.role === "admin" ? "default" : "secondary"}>
-                        {member.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {member.repositoryCount || 0}
-                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {member.lastActiveAt
                         ? formatRelativeTime(new Date(member.lastActiveAt))
                         : "-"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {member.repositoryCount || 0}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {member.totalContributions?.toLocaleString() || 0}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(memberTeamsMap.get(member.id) || []).map((teamName) => (
+                          <Badge key={teamName} variant="outline">
+                            {teamName}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
