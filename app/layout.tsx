@@ -13,13 +13,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gh-arch-viz.vercel.app"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://gh-arch-viz.vercel.app"
+  ),
   title: {
     default: "GitHub Architecture Visualizer",
     template: "%s | GitHub Arch Viz",
   },
-  description: "Visualize and analyze your GitHub organization's technical architecture. Automatically detect frameworks, languages, infrastructure, and technology stack across all repositories.",
-  keywords: ["GitHub", "Architecture", "Visualization", "Tech Stack", "Repository Analysis", "DevOps", "Infrastructure"],
+  description:
+    "Visualize and analyze your GitHub organization's technical architecture. Automatically detect frameworks, languages, infrastructure, and technology stack across all repositories.",
+  keywords: [
+    "GitHub",
+    "Architecture",
+    "Visualization",
+    "Tech Stack",
+    "Repository Analysis",
+    "DevOps",
+    "Infrastructure",
+  ],
   authors: [{ name: "GitHub Arch Viz" }],
   creator: "GitHub Arch Viz",
   openGraph: {
@@ -27,13 +38,15 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://gh-arch-viz.vercel.app",
     title: "GitHub Architecture Visualizer",
-    description: "Visualize and analyze your GitHub organization's technical architecture",
+    description:
+      "Visualize and analyze your GitHub organization's technical architecture",
     siteName: "GitHub Arch Viz",
   },
   twitter: {
     card: "summary_large_image",
     title: "GitHub Architecture Visualizer",
-    description: "Visualize and analyze your GitHub organization's technical architecture",
+    description:
+      "Visualize and analyze your GitHub organization's technical architecture",
   },
   robots: {
     index: true,
@@ -49,7 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased p-4`}
       >
         {children}
       </body>

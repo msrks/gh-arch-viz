@@ -32,17 +32,17 @@ function formatRelativeTime(date: Date): string {
   const diffYear = Math.floor(diffDay / 365);
 
   if (diffYear > 0) {
-    return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
+    return `${diffYear} year${diffYear > 1 ? "s" : ""} ago`;
   } else if (diffMonth > 0) {
-    return `${diffMonth} month${diffMonth > 1 ? 's' : ''} ago`;
+    return `${diffMonth} month${diffMonth > 1 ? "s" : ""} ago`;
   } else if (diffDay > 0) {
-    return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+    return `${diffDay} day${diffDay > 1 ? "s" : ""} ago`;
   } else if (diffHour > 0) {
-    return `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
+    return `${diffHour} hour${diffHour > 1 ? "s" : ""} ago`;
   } else if (diffMin > 0) {
-    return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+    return `${diffMin} minute${diffMin > 1 ? "s" : ""} ago`;
   } else {
-    return 'just now';
+    return "just now";
   }
 }
 
@@ -88,11 +88,13 @@ export default async function MembersPage() {
     if (a.lastActiveAt === null && b.lastActiveAt === null) return 0;
     if (a.lastActiveAt === null) return 1;
     if (b.lastActiveAt === null) return -1;
-    return new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime();
+    return (
+      new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime()
+    );
   });
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -123,8 +125,12 @@ export default async function MembersPage() {
             <TableBody>
               {members.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No members synced yet. Click &quot;Sync Members&quot; to begin.
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    No members synced yet. Click &quot;Sync Members&quot; to
+                    begin.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -133,11 +139,18 @@ export default async function MembersPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={member.avatarUrl} alt={member.username} />
-                          <AvatarFallback>{member.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          <AvatarImage
+                            src={member.avatarUrl}
+                            alt={member.username}
+                          />
+                          <AvatarFallback>
+                            {member.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{member.name || member.username}</div>
+                          <div className="font-medium">
+                            {member.name || member.username}
+                          </div>
                           <a
                             href={member.profileUrl}
                             target="_blank"
@@ -162,11 +175,13 @@ export default async function MembersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {(memberTeamsMap.get(member.id) || []).map((teamName) => (
-                          <Badge key={teamName} variant="outline">
-                            {teamName}
-                          </Badge>
-                        ))}
+                        {(memberTeamsMap.get(member.id) || []).map(
+                          (teamName) => (
+                            <Badge key={teamName} variant="outline">
+                              {teamName}
+                            </Badge>
+                          )
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

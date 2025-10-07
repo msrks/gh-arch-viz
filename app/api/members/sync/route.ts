@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/middleware/auth";
 import { makeOctokit, listOrgMembers, getUserDetails, getMemberRole, listOrgTeams, listTeamMembers, getTeamMembershipRole } from "@/lib/github";
 import { db } from "@/lib/db";
-import { orgMembers, account, repoInventory, teams, teamMembers } from "@/lib/db/schema";
+import { orgMembers, account, teams, teamMembers } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 

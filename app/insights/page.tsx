@@ -1,7 +1,13 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +15,16 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { LanguageIcon } from "@/components/language-icon";
 import Image from "next/image";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+  "#FFC658",
+  "#FF6B9D",
+];
 
 // Language colors based on GitHub standard
 const LANGUAGE_COLORS: Record<string, string> = {
@@ -59,9 +74,11 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen">
         <div className="max-w-6xl mx-auto">
-          <p className="text-center text-muted-foreground">Loading insights...</p>
+          <p className="text-center text-muted-foreground">
+            Loading insights...
+          </p>
         </div>
       </div>
     );
@@ -142,7 +159,9 @@ export default function InsightsPage() {
                     cy="50%"
                     labelLine={true}
                     label={(props) => {
-                      const entry = languageData.find(d => d.name === props.name);
+                      const entry = languageData.find(
+                        (d) => d.name === props.name
+                      );
                       return entry && entry.value > 5 ? props.name : "";
                     }}
                     outerRadius={100}
@@ -152,7 +171,10 @@ export default function InsightsPage() {
                     {languageData.map((entry) => (
                       <Cell
                         key={`cell-${entry.name}`}
-                        fill={LANGUAGE_COLORS[entry.name] || COLORS[languageData.indexOf(entry) % COLORS.length]}
+                        fill={
+                          LANGUAGE_COLORS[entry.name] ||
+                          COLORS[languageData.indexOf(entry) % COLORS.length]
+                        }
                       />
                     ))}
                   </Pie>
@@ -163,10 +185,15 @@ export default function InsightsPage() {
                         return (
                           <div className="bg-background border rounded p-2 shadow-lg">
                             <div className="flex items-center gap-2">
-                              <LanguageIcon language={data.name as string} size={20} />
+                              <LanguageIcon
+                                language={data.name as string}
+                                size={20}
+                              />
                               <span className="font-semibold">{data.name}</span>
                             </div>
-                            <p className="text-sm mt-1">Repositories: {data.value}</p>
+                            <p className="text-sm mt-1">
+                              Repositories: {data.value}
+                            </p>
                           </div>
                         );
                       }
@@ -182,14 +209,21 @@ export default function InsightsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Top Contributors</CardTitle>
-              <CardDescription>Most active contributors across all repositories</CardDescription>
+              <CardDescription>
+                Most active contributors across all repositories
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {topContributors.map((contributor, index) => (
-                  <div key={contributor.login} className="flex items-center justify-between">
+                  <div
+                    key={contributor.login}
+                    className="flex items-center justify-between"
+                  >
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-muted-foreground w-6">#{index + 1}</span>
+                      <span className="text-sm font-semibold text-muted-foreground w-6">
+                        #{index + 1}
+                      </span>
                       <a
                         href={contributor.profileUrl}
                         target="_blank"
@@ -206,14 +240,21 @@ export default function InsightsPage() {
                         <div>
                           <p className="font-medium">{contributor.login}</p>
                           <p className="text-sm text-muted-foreground">
-                            {contributor.repoCount} {contributor.repoCount === 1 ? 'repository' : 'repositories'}
+                            {contributor.repoCount}{" "}
+                            {contributor.repoCount === 1
+                              ? "repository"
+                              : "repositories"}
                           </p>
                         </div>
                       </a>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">{contributor.totalContributions.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">contributions</p>
+                      <p className="font-bold text-lg">
+                        {contributor.totalContributions.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        contributions
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -225,20 +266,30 @@ export default function InsightsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Summary Statistics</CardTitle>
-              <CardDescription>Quick overview of technology adoption</CardDescription>
+              <CardDescription>
+                Quick overview of technology adoption
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Repositories</span>
+                <span className="text-muted-foreground">
+                  Total Repositories
+                </span>
                 <span className="font-bold">{data.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Unique Languages</span>
-                <span className="font-bold">{Object.keys(languageCounts).length}</span>
+                <span className="font-bold">
+                  {Object.keys(languageCounts).length}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Contributors</span>
-                <span className="font-bold">{Object.keys(contributorStats).length}</span>
+                <span className="text-muted-foreground">
+                  Total Contributors
+                </span>
+                <span className="font-bold">
+                  {Object.keys(contributorStats).length}
+                </span>
               </div>
             </CardContent>
           </Card>

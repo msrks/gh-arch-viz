@@ -13,7 +13,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen">
       <div className="max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-center mb-6">User Profile</h1>
         <UserProfile user={session.user} />
