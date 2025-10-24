@@ -25,6 +25,11 @@ export function PageNav() {
           Members
         </Button>
       </Link>
+      <Link href="/activity">
+        <Button variant={pathname?.startsWith("/activity") ? "default" : "link"}>
+          Activity
+        </Button>
+      </Link>
       <Link href="/insights">
         <Button variant={isActive("/insights") ? "default" : "link"}>
           Insights
