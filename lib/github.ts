@@ -341,3 +341,125 @@ export async function listRepoContributors(
     throw error;
   }
 }
+
+/**
+ * Get repository commits within a date range
+ */
+export async function getRepoCommits(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  since: Date,
+  until: Date
+) {
+  try {
+    const { data } = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      since: since.toISOString(),
+      until: until.toISOString(),
+      per_page: 100,
+    });
+
+    return data.map((commit) => ({
+      sha: commit.sha,
+      message: commit.commit.message,
+      author: commit.author?.login || commit.commit.author?.name || "Unknown",
+      authorAvatar: commit.author?.avatar_url || null,
+      date: new Date(commit.commit.author?.date || ""),
+      url: commit.html_url,
+    }));
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 404 || err.status === 409) {
+      // 404: repo not found, 409: empty repo
+      return [];
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get organization pull requests within a date range
+ */
+export async function getOrgPullRequests(
+  octokit: Octokit,
+  org: string,
+  since: Date,
+  until: Date
+) {
+  try {
+    // GitHub's search API for PRs in an organization
+    const query = `org:${org} is:pr created:${since.toISOString().split('T')[0]}..${until.toISOString().split('T')[0]}`;
+
+    const { data } = await octokit.rest.search.issuesAndPullRequests({
+      q: query,
+      sort: "created",
+      order: "desc",
+      per_page: 100,
+    });
+
+    return data.items.map((pr) => ({
+      number: pr.number,
+      title: pr.title,
+      state: pr.state, // open, closed
+      merged: pr.pull_request?.merged_at ? true : false,
+      author: pr.user?.login || "Unknown",
+      authorAvatar: pr.user?.avatar_url || null,
+      repo: pr.repository_url?.split('/').slice(-1)[0] || "",
+      url: pr.html_url,
+      createdAt: new Date(pr.created_at),
+      closedAt: pr.closed_at ? new Date(pr.closed_at) : null,
+    }));
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 422) {
+      // Invalid search query
+      console.warn(`Invalid search query for PRs in org ${org}`);
+      return [];
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get organization issues within a date range
+ */
+export async function getOrgIssues(
+  octokit: Octokit,
+  org: string,
+  since: Date,
+  until: Date
+) {
+  try {
+    // GitHub's search API for issues in an organization (excluding PRs)
+    const query = `org:${org} is:issue created:${since.toISOString().split('T')[0]}..${until.toISOString().split('T')[0]}`;
+
+    const { data } = await octokit.rest.search.issuesAndPullRequests({
+      q: query,
+      sort: "created",
+      order: "desc",
+      per_page: 100,
+    });
+
+    return data.items.map((issue) => ({
+      number: issue.number,
+      title: issue.title,
+      state: issue.state, // open, closed
+      author: issue.user?.login || "Unknown",
+      authorAvatar: issue.user?.avatar_url || null,
+      repo: issue.repository_url?.split('/').slice(-1)[0] || "",
+      url: issue.html_url,
+      createdAt: new Date(issue.created_at),
+      closedAt: issue.closed_at ? new Date(issue.closed_at) : null,
+    }));
+  } catch (error: unknown) {
+    const err = error as { status?: number };
+    if (err.status === 422) {
+      // Invalid search query
+      console.warn(`Invalid search query for issues in org ${org}`);
+      return [];
+    }
+    throw error;
+  }
+}

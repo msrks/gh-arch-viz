@@ -131,6 +131,7 @@ export const orgMembers = pgTable(
     username: text("username").notNull(),
     userId: integer("user_id").notNull(),
     name: text("name"),
+    email: text("email"), // GitHub email (may be null if user hides email)
     avatarUrl: text("avatar_url").notNull(),
     profileUrl: text("profile_url").notNull(),
     role: text("role").notNull(), // "admin" | "member"
@@ -184,5 +185,22 @@ export const teamMembers = pgTable(
   },
   (table) => ({
     teamMemberUnique: uniqueIndex("team_member_unique").on(table.teamId, table.memberId),
+  })
+);
+
+export const activitySummaries = pgTable(
+  "activity_summaries",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    org: text("org").notNull(),
+    summaryDate: timestamp("summary_date", { mode: "date" }).notNull(), // Date of the activity (not the generation date)
+    markdown: text("markdown").notNull(), // Generated markdown content
+    sentAt: timestamp("sent_at"), // When the email was sent (null if not sent yet)
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgSummaryDateUnique: uniqueIndex("org_summary_date_unique").on(table.org, table.summaryDate),
   })
 );
