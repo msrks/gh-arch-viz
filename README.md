@@ -24,6 +24,7 @@
 - **📊 Visual Insights** - Charts and graphs showing technology distribution
 - **👥 Member Management** - View organization members with roles, avatars, and activity
 - **👤 Contributors Display** - View repository contributors with avatars and contribution counts
+- **📬 Daily Activity Summary** - Automated daily digest of GitHub activity (commits, PRs, issues) sent via email (Resend) every weekday morning at 8 AM JST
 - **⚡ Fast Scanning** - Batch parallel processing (dev) or QStash background jobs (prod)
 - **🕒 Smart Sorting** - Repositories sorted by last push date with "X days ago" display
 - **🎨 Modern UI** - Built with shadcn/ui, Tailwind CSS v4, and GitHub language colors
@@ -36,6 +37,7 @@
 - **Database**: PostgreSQL (Neon) + Drizzle ORM
 - **Auth**: Better Auth (GitHub OAuth)
 - **Visualization**: Recharts
+- **Email**: Resend
 - **Package Manager**: pnpm
 
 ## 📦 Prerequisites
@@ -44,7 +46,9 @@
 - pnpm 9+
 - PostgreSQL database (recommend [Neon](https://neon.tech))
 - GitHub OAuth App credentials
-- Upstash QStash account (for background job processing)
+- Upstash QStash account (for repository scanning background jobs)
+- Resend account (for email delivery)
+- Vercel account (for cron jobs - included with deployment)
 
 ## 🔧 Setup
 
@@ -84,7 +88,19 @@ pnpm install
 
 **Note**: QStash is used for background job processing to scan repositories without hitting Vercel's execution time limits. The free tier includes 500 requests/day.
 
-### 5. Configure environment variables
+### 5. Set up Resend for Email Delivery
+
+1. Create a free account at [Resend](https://resend.com)
+2. Navigate to **API Keys** and create a new API key
+3. Copy the API key (starts with `re_`)
+4. Set up a verified domain:
+   - Go to **Domains** → **Add Domain**
+   - Add your domain and verify DNS records (SPF, DKIM, DMARC)
+   - Or use Resend's test domain (`onboarding@resend.dev`) for development
+
+**Note**: Resend free tier includes 100 emails/day and 3,000 emails/month.
+
+### 6. Configure environment variables
 
 Copy `.env.example` to `.env`:
 
@@ -114,19 +130,54 @@ ALLOWED_GH_TEAM_SLUG="<your-team-slug>"  # Leave empty "" to allow all org membe
 QSTASH_TOKEN="<your-qstash-token>"
 QSTASH_CURRENT_SIGNING_KEY="<your-current-signing-key>"
 QSTASH_NEXT_SIGNING_KEY="<your-next-signing-key>"
+
+# Resend (Email Delivery)
+RESEND_API_KEY="<your-resend-api-key>"
+RESEND_FROM_EMAIL="noreply@your-domain.com"  # Your verified sender email
+
+# Daily Activity Summary Recipients (Optional)
+ACTIVITY_SUMMARY_RECIPIENTS="email1@example.com,email2@example.com"  # Comma-separated
+
+# Vercel Cron Secret (generate a random string)
+CRON_SECRET="<generate-a-long-random-string>"
 ```
 
 **Notes**:
 - To find your team slug, go to your GitHub org → Teams → click on your team. The URL will be `github.com/orgs/YOUR_ORG/teams/YOUR_TEAM_SLUG`.
 - Leave `ALLOWED_GH_TEAM_SLUG=""` (empty string) to allow all organization members to access the app.
+- For `RESEND_FROM_EMAIL`, use a verified domain email or `onboarding@resend.dev` for testing
+- `ACTIVITY_SUMMARY_RECIPIENTS` should be a comma-separated list of email addresses to receive daily summaries
+- `CRON_SECRET` is used to authenticate Vercel Cron requests - generate with `openssl rand -base64 32`
 
-### 6. Run database migrations
+### 7. Set up Vercel Cron Jobs (Optional)
+
+If you want to enable automated daily GitHub activity summaries:
+
+1. Create `vercel.json` in the project root:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 23 * * 1-5"
+    }
+  ]
+}
+```
+
+2. The cron expression `0 23 * * 1-5` runs Monday-Friday at 11 PM UTC (= Tuesday-Saturday 8 AM JST)
+
+3. Deploy to Vercel - cron jobs are automatically configured
+
+**Note**: Vercel Cron Jobs are available on all plans including Hobby (free). They run with a 10-second execution limit on Hobby plans.
+
+### 9. Run database migrations
 
 ```bash
 pnpm db:push
 ```
 
-### 7. Start the development server
+### 10. Start the development server
 
 ```bash
 pnpm dev
@@ -165,6 +216,11 @@ Open [http://localhost:3000](http://localhost:3000)
 5. **View Insights**
    - Click "View Insights" to see charts and graphs
    - Analyze technology distribution across your organization
+
+6. **View Activity Summaries**
+   - Click "Activity" to see daily GitHub activity summaries
+   - Automatically generated every weekday at 8 AM JST (Tue-Sat)
+   - View past summaries with detailed breakdowns by repository and member
 
 ### Rescanning
 
@@ -247,6 +303,10 @@ Make sure to set these in your hosting platform:
 - `QSTASH_TOKEN`
 - `QSTASH_CURRENT_SIGNING_KEY`
 - `QSTASH_NEXT_SIGNING_KEY`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `ACTIVITY_SUMMARY_RECIPIENTS` (optional, for daily summaries)
+- `CRON_SECRET`
 
 ## 🐛 Troubleshooting
 
@@ -270,10 +330,20 @@ Make sure to set these in your hosting platform:
 - Check QStash dashboard for failed jobs and error messages
 - **Note**: In development mode (`pnpm dev`), QStash is **not used** - scans run directly to save quota
 
+### Vercel Cron Jobs Not Running
+
+- Verify that `vercel.json` exists in the project root with correct cron configuration
+- Ensure `CRON_SECRET` environment variable is set in Vercel project settings
+- Check Vercel Logs → Cron for execution history and errors
+- Cron jobs only run in production deployments, not in development or preview
+- Hobby plan cron jobs have a 10-second execution limit
+
 ## 🗺 Roadmap
 
 - [x] **Background Jobs**: Upstash QStash integration for scalable scanning
 - [x] **Organization-wide Scanning**: Support for scanning all org repos (not just team repos)
+- [x] **Daily Activity Summary**: Automated GitHub activity digest sent via email (Resend)
+- [ ] **Microsoft Teams Integration**: Post activity summaries to Teams channels
 - [ ] **Policy Engine**: Define and enforce technology standards
 - [ ] **Scheduled Scans**: Automatic daily/weekly rescans via QStash
 - [ ] **GitHub App**: Replace OAuth with GitHub App for better security
@@ -298,6 +368,7 @@ Built with:
 - [shadcn/ui](https://ui.shadcn.com)
 - [Recharts](https://recharts.org)
 - [Octokit](https://github.com/octokit/octokit.js)
+- [Resend](https://resend.com)
 
 ---
 

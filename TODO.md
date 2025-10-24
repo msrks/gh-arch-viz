@@ -369,6 +369,187 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 
 ---
 
+## 📬 Phase 7: Daily GitHub Activity Summary
+
+### 7.1 概要
+
+**目的**: 火曜、水曜、木曜、金曜、土曜の午前8時に、前日のGitHub Activity（コミット、PR、Issues、コメント等）をメンバー向けに配信
+
+### 7.2 データベーススキーマ
+
+- [x] **activity_summaries テーブル作成**
+  - [x] スキーマ定義 (`lib/db/schema.ts`)
+    - `id` (serial primary key)
+    - `org` (varchar) - 組織名
+    - `summaryDate` (date) - サマリー対象日（前日）
+    - `markdown` (text) - 生成されたMarkdownコンテンツ
+    - `sentAt` (timestamp) - 配信日時
+    - `createdAt` (timestamp)
+  - [x] ユニークインデックス (`org` + `summaryDate`)
+  - [x] `pnpm db:push` でスキーマ反映
+
+### 7.3 GitHub API 統合
+
+- [x] **Activity 取得関数**
+  - [x] `lib/github.ts` に以下を追加
+    - `getRepoCommits(octokit, owner, repo, since, until)` - リポジトリのコミット
+    - `getOrgPullRequests(octokit, org, since, until)` - PRの一覧
+    - `getOrgIssues(octokit, org, since, until)` - Issueの一覧
+
+### 7.4 Markdown サマリー生成
+
+- [x] **サマリー生成ロジック**
+  - [x] `lib/activity-summary.ts` 作成
+    - `generateDailySummary(org, date)` - メイン関数
+    - `formatCommitSummary(commits)` - コミットのフォーマット
+    - `formatPRSummary(prs)` - PRのフォーマット
+    - `formatIssueSummary(issues)` - Issueのフォーマット
+    - `groupByRepository(activities)` - リポジトリごとにグループ化
+    - `groupByMember(activities)` - メンバーごとにグループ化
+
+### 7.5 スケジュール実行（Vercel Cron Jobs）
+
+- [x] **Cron Job 設定**
+  - [x] `vercel.json` でスケジュール設定
+  - [x] Cron式: `0 23 * * 1-5` (UTC, 月〜金 23:00 = JST 火〜土 8:00)
+  - [x] エンドポイント: `/api/cron/daily-summary`
+  - [x] 環境変数 `CRON_SECRET` で認証
+
+### 7.6 API エンドポイント
+
+- [x] **GET `/api/cron/daily-summary`**
+  - [x] Vercel Cron認証（Authorization Bearer token チェック）
+  - [x] 前日の日付を計算
+  - [x] `generateDailySummary()` 呼び出し
+  - [x] 生成したMarkdownをDBに保存
+  - [x] Resendでメール配信
+
+- [x] **GET `/api/activity/summaries`**
+  - [x] 過去のサマリー一覧取得
+  - [x] 日付でソート（降順）
+
+- [x] **GET `/api/activity/summaries/[date]`**
+  - [x] 特定日付のサマリー取得
+  - [x] Markdown表示
+
+### 7.7 メール配信機能（Resend）
+
+- [x] **Resend セットアップ**
+  - [x] `resend` パッケージインストール（`pnpm add resend`）
+  - [x] Resend API Key 取得（環境変数 `RESEND_API_KEY`）
+  - [x] `.env.example` 更新
+
+- [x] **Email 統合**
+  - [x] `lib/email.ts` 作成
+    - `sendDailySummary(to, subject, markdown)` - メイン関数
+    - Markdown → HTML変換（`marked`）
+    - Resend API呼び出し
+  - [x] 環境変数で配信先リスト設定（`ACTIVITY_SUMMARY_RECIPIENTS`）
+
+### 7.8 UI 実装
+
+- [x] **`/app/activity/page.tsx`**
+  - [x] サマリー一覧ページ
+  - [x] 統計情報表示（Total Summaries, Emails Sent, Last Sent）
+  - [x] サマリー履歴テーブル
+  - [x] 各日付をクリックでサマリー表示
+
+- [x] **`/app/activity/[date]/page.tsx`**
+  - [x] 特定日付のサマリー詳細ページ
+  - [x] Markdownレンダリング（GitHub風スタイル）
+  - [x] メタデータ表示
+
+- [x] **ナビゲーション統合**
+  - [x] 共有ナビゲーションに "Activity" リンク追加
+
+### 7.9 配信機能（将来対応）
+
+- [ ] **Microsoft Teams 統合（Phase 8で実装予定）**
+  - [ ] Teams Webhook URL設定（環境変数）
+  - [ ] `lib/teams.ts` - Teams投稿関数
+  - [ ] Adaptive Cardsフォーマットでの投稿
+
+### 7.10 テスト・デバッグ
+
+- [ ] **手動実行機能**
+  - [ ] UI上で任意の日付のサマリー生成
+  - [ ] 生成されたMarkdownのプレビュー
+
+- [ ] **ローカルテスト**
+  - [ ] `/api/cron/daily-summary` を `CRON_SECRET` 付きで呼び出し
+  - [ ] 前日のアクティビティが正しく取得されるか確認
+
+- [ ] **Vercel Cron テスト**
+  - [ ] `vercel.json` 設定確認
+  - [ ] Vercel Logs でCron実行履歴確認
+  - [ ] 手動トリガー（Vercel Dashboard経由）
+
+### 7.11 ドキュメント更新
+
+- [x] **TODO.md**
+  - [x] Phase 7の詳細追加
+
+- [x] **README.md**
+  - [x] Daily Activity Summary機能の説明
+  - [x] スケジュール設定方法
+  - [x] Resend設定手順
+  - [x] メール配信先設定方法
+
+- [x] **CLAUDE.md**
+  - [x] アーキテクチャへの追加
+  - [x] API Routes一覧に追加
+  - [x] Vercel Cron設定の説明
+  - [x] Resend統合の説明
+
+### 7.12 必要パッケージ
+
+- [x] **依存関係追加**
+  - [x] `resend` - メール送信
+  - [x] `marked` - Markdown → HTML変換
+  - [x] `date-fns` - 日付処理
+
+### 7.13 Markdownサマリーの構成例
+
+```markdown
+# GitHub Activity Summary - 2025-10-23
+
+## 📊 Overview
+- **Total Commits**: 42
+- **Pull Requests**: 8 (6 merged, 2 open)
+- **Issues**: 5 (3 opened, 2 closed)
+- **Active Members**: 12
+
+## 👥 Top Contributors
+1. **@alice** - 15 commits, 3 PRs
+2. **@bob** - 10 commits, 2 PRs
+3. **@charlie** - 8 commits, 1 PR
+
+## 📦 Repository Activity
+
+### repo-name-1
+- **Commits**: 12
+  - @alice: feat: add new feature (#123)
+  - @bob: fix: resolve bug (#124)
+- **Pull Requests**:
+  - #45 - feat: implement X (merged by @alice)
+  - #46 - refactor: improve Y (open)
+
+### repo-name-2
+- **Commits**: 8
+  - @charlie: docs: update README
+- **Issues**:
+  - #78 - Bug: Something broken (opened by @dave)
+
+## 🔥 Highlights
+- 🎉 repo-name-1 reached 100 stars!
+- 🚀 Deployed version 2.0.0 to production
+
+---
+Generated at: 2025-10-24 08:00 JST
+```
+
+---
+
 ## 🔍 テスト・品質保証
 
 - [ ] **手動テスト項目**
