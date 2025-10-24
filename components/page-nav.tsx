@@ -30,6 +30,11 @@ export function PageNav() {
           Activity
         </Button>
       </Link>
+      <Link href="/recipients">
+        <Button variant={pathname?.startsWith("/recipients") ? "default" : "link"}>
+          Recipients
+        </Button>
+      </Link>
       <Link href="/insights">
         <Button variant={isActive("/insights") ? "default" : "link"}>
           Insights

@@ -204,3 +204,19 @@ export const activitySummaries = pgTable(
     orgSummaryDateUnique: uniqueIndex("org_summary_date_unique").on(table.org, table.summaryDate),
   })
 );
+
+export const emailRecipients = pgTable(
+  "email_recipients",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(), // cuid2
+    org: text("org").notNull(),
+    email: text("email").notNull(),
+    name: text("name"), // Optional display name
+    active: boolean("active").default(true).notNull(), // Enable/disable without deleting
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    orgEmailUnique: uniqueIndex("org_email_unique").on(table.org, table.email),
+  })
+);

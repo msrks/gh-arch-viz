@@ -1,8 +1,8 @@
 import { Resend } from "resend";
 import { marked } from "marked";
 import { db } from "@/lib/db";
-import { orgMembers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { emailRecipients } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -211,48 +211,51 @@ export async function sendDailySummary(
 }
 
 /**
- * Get recipients from database (all org members with email addresses)
- * Combines database emails with environment variable emails
- * Prioritizes database emails, then adds any additional emails from env var
+ * Get active email recipients from database
+ * Falls back to environment variable if no recipients found
  */
 export async function getRecipients(org: string): Promise<string[]> {
-  const allEmails = new Set<string>();
-
   try {
-    // Get all org members with email addresses from database
-    const members = await db
-      .select({ email: orgMembers.email })
-      .from(orgMembers)
+    // Get all active email recipients from database
+    const recipients = await db
+      .select({ email: emailRecipients.email })
+      .from(emailRecipients)
       .where(
-        eq(orgMembers.org, org)
+        and(
+          eq(emailRecipients.org, org),
+          eq(emailRecipients.active, true)
+        )
       );
 
-    // Add database emails
-    const dbEmails = members
-      .map((m) => m.email)
-      .filter((email): email is string => !!email && email.trim().length > 0);
-
-    dbEmails.forEach((email) => allEmails.add(email.trim()));
+    const dbEmails = recipients
+      .map((r) => r.email)
+      .filter((email) => email && email.trim().length > 0);
 
     if (dbEmails.length > 0) {
-      console.log(`Found ${dbEmails.length} recipients from database for org ${org}`);
-    } else {
-      console.warn(`No emails found in database for org ${org}`);
+      console.log(`Found ${dbEmails.length} active recipients from database for org ${org}`);
+      return dbEmails;
     }
+
+    // Fallback to environment variable if no recipients in database
+    console.warn(`No active recipients found in database for org ${org}, falling back to ACTIVITY_SUMMARY_RECIPIENTS`);
+    const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
+    if (recipientsEnv) {
+      const envEmails = recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
+      console.log(`Using ${envEmails.length} recipients from environment variable`);
+      return envEmails;
+    }
+
+    console.warn('No recipients configured');
+    return [];
   } catch (error) {
     console.error('Failed to get recipients from database:', error);
+
+    // Fallback to environment variable on error
+    const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
+    if (recipientsEnv) {
+      return recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
+    }
+
+    return [];
   }
-
-  // Always check environment variable for additional recipients
-  const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
-  if (recipientsEnv) {
-    const envEmails = recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
-    envEmails.forEach((email) => allEmails.add(email));
-    console.log(`Added ${envEmails.length} recipients from ACTIVITY_SUMMARY_RECIPIENTS`);
-  }
-
-  const finalEmails = Array.from(allEmails);
-  console.log(`Total recipients: ${finalEmails.length}`);
-
-  return finalEmails;
 }
