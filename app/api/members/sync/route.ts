@@ -12,8 +12,11 @@ import { nanoid } from "nanoid";
  */
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
+  if (!authResult.success) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
   }
 
   const { user } = authResult;
@@ -99,6 +102,7 @@ export async function POST(request: NextRequest) {
                 .update(orgMembers)
                 .set({
                   name: details.name,
+                  email: details.email || null, // GitHub email (may be null if hidden)
                   avatarUrl: member.avatarUrl,
                   profileUrl: member.profileUrl,
                   role,
@@ -119,6 +123,7 @@ export async function POST(request: NextRequest) {
                   username: member.username,
                   userId: member.userId,
                   name: details.name,
+                  email: details.email || null, // GitHub email (may be null if hidden)
                   avatarUrl: member.avatarUrl,
                   profileUrl: member.profileUrl,
                   role,
