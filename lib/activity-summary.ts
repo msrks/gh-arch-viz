@@ -455,3 +455,193 @@ export async function generateDailySummary(
 
   return summaryId;
 }
+
+/**
+ * Generate weekly summary for an organization
+ * @param octokit - Authenticated Octokit instance
+ * @param org - Organization name
+ * @param startDate - Start date of the week (Monday)
+ * @param endDate - End date of the week (Friday)
+ * @param useAI - Whether to use AI to enhance the summary (defaults to true)
+ * @returns The generated summary ID
+ */
+export async function generateWeeklySummary(
+  octokit: Octokit,
+  org: string,
+  startDate: Date,
+  endDate: Date,
+  useAI: boolean = true
+): Promise<string> {
+  console.log(`Generating weekly summary for ${org} from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+
+  // Set time range (start of Monday to end of Friday)
+  const startOfWeek = new Date(startDate);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(endDate);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  // Collect activity data for the entire week
+  const activityData = await collectActivityData(octokit, org, startOfWeek, endOfWeek);
+
+  // Generate base markdown (modified for weekly format)
+  const weekLabel = `${format(startDate, 'MMMM dd')} - ${format(endDate, 'MMMM dd, yyyy')}`;
+  const baseMarkdown = generateWeeklyMarkdown(org, weekLabel, activityData);
+
+  // Enhance with AI if enabled and configured
+  let markdown = baseMarkdown;
+  if (useAI) {
+    try {
+      console.log("Enhancing weekly summary with AI...");
+      // Use endDate for AI context (the last day of the week)
+      markdown = await enhanceMarkdownWithAI(org, endDate, activityData, baseMarkdown);
+      console.log("AI enhancement completed");
+    } catch (error) {
+      console.warn("AI enhancement failed, using base markdown:", error);
+      markdown = baseMarkdown;
+    }
+  }
+
+  // Store in database with the Friday date as the summary date
+  const summaryDate = new Date(endDate);
+  summaryDate.setHours(0, 0, 0, 0);
+
+  // Check if summary already exists
+  const existing = await db
+    .select()
+    .from(activitySummaries)
+    .where(
+      and(
+        eq(activitySummaries.org, org),
+        eq(activitySummaries.summaryDate, summaryDate)
+      )
+    )
+    .limit(1);
+
+  let summaryId: string;
+
+  if (existing.length > 0) {
+    // Update existing summary
+    summaryId = existing[0].id;
+    await db
+      .update(activitySummaries)
+      .set({
+        markdown,
+        updatedAt: new Date(),
+      })
+      .where(eq(activitySummaries.id, summaryId));
+
+    console.log(`Updated existing weekly summary ${summaryId}`);
+  } else {
+    // Create new summary
+    summaryId = createId();
+    await db.insert(activitySummaries).values({
+      id: summaryId,
+      org,
+      summaryDate,
+      markdown,
+      sentAt: null,
+    });
+
+    console.log(`Created new weekly summary ${summaryId}`);
+  }
+
+  return summaryId;
+}
+
+/**
+ * Generate markdown for weekly summary
+ */
+function generateWeeklyMarkdown(
+  org: string,
+  weekLabel: string,
+  data: ActivityData
+): string {
+  // Calculate totals
+  const totalCommits = data.commits.length;
+  const totalPRs = data.pullRequests.length;
+  const totalIssues = data.issues.length;
+  const mergedPRs = data.pullRequests.filter((pr) => pr.merged).length;
+  const openPRs = data.pullRequests.filter((pr) => pr.state === "open" && !pr.merged).length;
+  const openedIssues = data.issues.filter((issue) => issue.state === "open").length;
+  const closedIssues = data.issues.filter((issue) => issue.state === "closed").length;
+
+  // Group by member and get top contributors
+  const memberStats = groupByMember(data);
+  const topContributors = Array.from(memberStats.entries())
+    .sort((a, b) => b[1].totalActivity - a[1].totalActivity)
+    .slice(0, 10); // Show top 10 for weekly
+
+  // Group by repository
+  const repoGroups = groupByRepository(data);
+  const activeRepos = Array.from(repoGroups.entries())
+    .filter(([, activity]) =>
+      activity.commits.length > 0 ||
+      activity.pullRequests.length > 0 ||
+      activity.issues.length > 0
+    )
+    .sort((a, b) =>
+      (b[1].commits.length + b[1].pullRequests.length + b[1].issues.length) -
+      (a[1].commits.length + a[1].pullRequests.length + a[1].issues.length)
+    );
+
+  // Build markdown
+  let markdown = `# GitHub Weekly Summary - ${weekLabel}\n\n`;
+  markdown += `**Organization**: ${org}\n\n`;
+
+  // Overview section
+  markdown += `## 📊 Weekly Overview\n\n`;
+  markdown += `- **Total Commits**: ${totalCommits}\n`;
+  markdown += `- **Pull Requests**: ${totalPRs} (${mergedPRs} merged, ${openPRs} open)\n`;
+  markdown += `- **Issues**: ${totalIssues} (${openedIssues} opened, ${closedIssues} closed)\n`;
+  markdown += `- **Active Members**: ${memberStats.size}\n`;
+  markdown += `- **Active Repositories**: ${activeRepos.length}\n\n`;
+
+  // Top contributors section
+  if (topContributors.length > 0) {
+    markdown += `## 🏆 Top Contributors This Week\n\n`;
+    topContributors.forEach(([username, stats], index) => {
+      markdown += `${index + 1}. **@${username}** - ${stats.commits} commits, ${stats.pullRequests} PRs, ${stats.issues} issues\n`;
+    });
+    markdown += `\n`;
+  }
+
+  // Repository activity section (show top 15 for weekly)
+  if (activeRepos.length > 0) {
+    markdown += `## 📦 Repository Activity\n\n`;
+    activeRepos.slice(0, 15).forEach(([repo, activity]) => {
+      markdown += `### ${repo}\n\n`;
+
+      if (activity.commits.length > 0) {
+        markdown += `**Commits (${activity.commits.length})**:\n`;
+        markdown += formatCommitSummary(activity.commits) + '\n\n';
+      }
+
+      if (activity.pullRequests.length > 0) {
+        markdown += `**Pull Requests (${activity.pullRequests.length})**:\n`;
+        markdown += formatPRSummary(activity.pullRequests) + '\n\n';
+      }
+
+      if (activity.issues.length > 0) {
+        markdown += `**Issues (${activity.issues.length})**:\n`;
+        markdown += formatIssueSummary(activity.issues) + '\n\n';
+      }
+    });
+
+    if (activeRepos.length > 15) {
+      markdown += `_... and ${activeRepos.length - 15} more repositories with activity_\n\n`;
+    }
+  }
+
+  // No activity message
+  if (totalCommits === 0 && totalPRs === 0 && totalIssues === 0) {
+    markdown += `## 🤷 No Activity\n\n`;
+    markdown += `No commits, pull requests, or issues were created this week.\n\n`;
+  }
+
+  // Footer
+  markdown += `---\n\n`;
+  markdown += `*Generated at ${new Date().toISOString()}*\n`;
+
+  return markdown;
+}
