@@ -14,8 +14,11 @@ import { qstash } from "@/lib/qstash";
  */
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
+  if (!authResult.success) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
   }
 
   const { user } = authResult;

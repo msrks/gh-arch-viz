@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 /**
  * Verify session and return user info with GitHub token
@@ -10,18 +10,24 @@ export async function requireAuth(request: NextRequest) {
   });
 
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return {
+      success: false as const,
+      error: "Unauthorized",
+    };
   }
 
   // Get GitHub account from session
   const user = session.user;
+  const org = process.env.ALLOWED_GH_ORG!;
 
   // TODO: Get GitHub access token from account table
   // For now, we'll return the session
 
   return {
+    success: true as const,
     session,
     user,
+    org,
   };
 }
 

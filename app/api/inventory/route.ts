@@ -10,8 +10,11 @@ import { eq, like, and, SQL } from "drizzle-orm";
  */
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
+  if (!authResult.success) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
   }
 
   const { searchParams } = new URL(request.url);

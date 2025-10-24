@@ -10,8 +10,11 @@ import { eq, desc } from "drizzle-orm";
  */
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
-  if (authResult instanceof NextResponse) {
-    return authResult;
+  if (!authResult.success) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: 401 }
+    );
   }
 
   const org = process.env.ALLOWED_GH_ORG!;
