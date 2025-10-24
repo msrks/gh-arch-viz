@@ -212,11 +212,14 @@ export async function sendDailySummary(
 
 /**
  * Get recipients from database (all org members with email addresses)
- * Falls back to environment variable if database query fails or returns no results
+ * Combines database emails with environment variable emails
+ * Prioritizes database emails, then adds any additional emails from env var
  */
 export async function getRecipients(org: string): Promise<string[]> {
+  const allEmails = new Set<string>();
+
   try {
-    // Get all org members with email addresses
+    // Get all org members with email addresses from database
     const members = await db
       .select({ email: orgMembers.email })
       .from(orgMembers)
@@ -224,34 +227,32 @@ export async function getRecipients(org: string): Promise<string[]> {
         eq(orgMembers.org, org)
       );
 
-    // Filter out null/undefined emails
-    const emails = members
+    // Add database emails
+    const dbEmails = members
       .map((m) => m.email)
       .filter((email): email is string => !!email && email.trim().length > 0);
 
-    if (emails.length > 0) {
-      console.log(`Found ${emails.length} recipients from database for org ${org}`);
-      return emails;
-    }
+    dbEmails.forEach((email) => allEmails.add(email.trim()));
 
-    // Fallback to environment variable
-    console.warn(`No emails found in database for org ${org}, falling back to ACTIVITY_SUMMARY_RECIPIENTS`);
-    const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
-    if (!recipientsEnv) {
-      console.warn('ACTIVITY_SUMMARY_RECIPIENTS environment variable is not set');
-      return [];
+    if (dbEmails.length > 0) {
+      console.log(`Found ${dbEmails.length} recipients from database for org ${org}`);
+    } else {
+      console.warn(`No emails found in database for org ${org}`);
     }
-
-    return recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
   } catch (error) {
     console.error('Failed to get recipients from database:', error);
-
-    // Fallback to environment variable
-    const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
-    if (!recipientsEnv) {
-      return [];
-    }
-
-    return recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
   }
+
+  // Always check environment variable for additional recipients
+  const recipientsEnv = process.env.ACTIVITY_SUMMARY_RECIPIENTS;
+  if (recipientsEnv) {
+    const envEmails = recipientsEnv.split(',').map((email) => email.trim()).filter(Boolean);
+    envEmails.forEach((email) => allEmails.add(email));
+    console.log(`Added ${envEmails.length} recipients from ACTIVITY_SUMMARY_RECIPIENTS`);
+  }
+
+  const finalEmails = Array.from(allEmails);
+  console.log(`Total recipients: ${finalEmails.length}`);
+
+  return finalEmails;
 }
