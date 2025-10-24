@@ -169,6 +169,7 @@ export async function getUserDetails(
 
   return {
     name: data.name,
+    email: data.email,
     company: data.company,
     location: data.location,
     bio: data.bio,

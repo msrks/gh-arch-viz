@@ -1,4 +1,3 @@
-import { AzureOpenAI } from "@azure/openai";
 import { generateText } from "ai";
 import { createAzure } from "@ai-sdk/azure";
 import type { ActivityData } from "./activity-summary";
@@ -118,8 +117,6 @@ ${JSON.stringify(issues, null, 2)}
     const { text } = await generateText({
       model,
       prompt,
-      temperature: 0.7,
-      maxTokens: 2000,
     });
 
     return text;

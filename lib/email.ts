@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { marked } from "marked";
 import { db } from "@/lib/db";
 import { orgMembers } from "@/lib/db/schema";
-import { eq, isNotNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
