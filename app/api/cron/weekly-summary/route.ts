@@ -60,11 +60,11 @@ export async function GET(request: NextRequest) {
     const octokit = makeOctokit(githubToken);
 
     // 4. Calculate date range (previous week Monday-Friday)
-    // Current execution: Monday 23:00 UTC = Tuesday 8:00 JST
-    // Target: Previous week's Monday-Friday
+    // Current execution: Sunday 23:00 UTC = Monday 8:00 JST
+    // Target: Previous week's Monday-Friday (1-5 days ago)
     const today = new Date();
-    const lastMonday = subDays(today, 7); // Go back 7 days to get last Monday
-    const lastFriday = subDays(today, 3); // Go back 3 days to get last Friday
+    const lastFriday = subDays(today, 2); // Sunday - 2 days = Friday
+    const lastMonday = subDays(today, 6); // Sunday - 6 days = Monday
 
     const weekLabel = `${format(lastMonday, 'MMM dd')} - ${format(lastFriday, 'MMM dd, yyyy')}`;
 
