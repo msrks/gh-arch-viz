@@ -472,14 +472,13 @@ export async function generateWeeklySummary(
   endDate: Date,
   useAI: boolean = true
 ): Promise<string> {
-  console.log(`Generating weekly summary for ${org} from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
+  console.log(`Generating weekly summary for ${org} from ${format(startDate, 'yyyy-MM-dd HH:mm:ss')} to ${format(endDate, 'yyyy-MM-dd HH:mm:ss')}`);
 
-  // Set time range (start of Monday to end of Sunday)
-  const startOfWeek = new Date(startDate);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const endOfWeek = new Date(endDate);
-  endOfWeek.setHours(23, 59, 59, 999);
+  // Use the provided dates as-is (they are already set with correct UTC times)
+  // startDate = Monday 15:00 UTC (= Monday 00:00 JST)
+  // endDate = Sunday 14:59:59 UTC (= Sunday 23:59:59 JST)
+  const startOfWeek = startDate;
+  const endOfWeek = endDate;
 
   // Collect activity data for the entire week
   const activityData = await collectActivityData(octokit, org, startOfWeek, endOfWeek);
@@ -502,9 +501,11 @@ export async function generateWeeklySummary(
     }
   }
 
-  // Store in database with the Friday date as the summary date
+  // Store in database with the Sunday date as the summary date (in JST context)
+  // endDate is Sunday 14:59 UTC = Sunday 23:59 JST
+  // Convert to midnight of that day in local time for database storage
   const summaryDate = new Date(endDate);
-  summaryDate.setHours(0, 0, 0, 0);
+  summaryDate.setUTCHours(0, 0, 0, 0);
 
   // Check if summary already exists
   const existing = await db
