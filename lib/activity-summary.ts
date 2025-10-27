@@ -374,37 +374,37 @@ export function generateMarkdown(
  * Generate daily summary for an organization
  * @param octokit - Authenticated Octokit instance
  * @param org - Organization name
- * @param date - Date to generate summary for (defaults to yesterday)
+ * @param startDate - Start date/time (defaults to yesterday 00:00 UTC)
+ * @param endDate - End date/time (defaults to yesterday 23:59 UTC)
  * @param useAI - Whether to use AI to enhance the summary (defaults to true)
  * @returns The generated summary ID
  */
 export async function generateDailySummary(
   octokit: Octokit,
   org: string,
-  date: Date = subDays(new Date(), 1),
+  startDate?: Date,
+  endDate?: Date,
   useAI: boolean = true
 ): Promise<string> {
-  console.log(`Generating daily summary for ${org} on ${format(date, 'yyyy-MM-dd')}`);
+  // Default to yesterday if dates not provided
+  const yesterday = subDays(new Date(), 1);
+  const startOfDay = startDate || new Date(yesterday.setHours(0, 0, 0, 0));
+  const endOfDay = endDate || new Date(yesterday.setHours(23, 59, 59, 999));
 
-  // Set time range (start of day to end of day)
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  console.log(`Generating daily summary for ${org} from ${format(startOfDay, 'yyyy-MM-dd HH:mm:ss')} to ${format(endOfDay, 'yyyy-MM-dd HH:mm:ss')}`);
 
   // Collect activity data
   const activityData = await collectActivityData(octokit, org, startOfDay, endOfDay);
 
-  // Generate base markdown
-  const baseMarkdown = generateMarkdown(org, date, activityData);
+  // Generate base markdown (use endOfDay for display date)
+  const baseMarkdown = generateMarkdown(org, endOfDay, activityData);
 
   // Enhance with AI if enabled and configured
   let markdown = baseMarkdown;
   if (useAI) {
     try {
       console.log("Enhancing summary with AI...");
-      markdown = await enhanceMarkdownWithAI(org, date, activityData, baseMarkdown);
+      markdown = await enhanceMarkdownWithAI(org, endOfDay, activityData, baseMarkdown);
       console.log("AI enhancement completed");
     } catch (error) {
       console.warn("AI enhancement failed, using base markdown:", error);
@@ -413,6 +413,10 @@ export async function generateDailySummary(
     }
   }
 
+  // Store in database with the date at midnight for consistency
+  const summaryDate = new Date(endOfDay);
+  summaryDate.setUTCHours(0, 0, 0, 0);
+
   // Check if summary already exists
   const existing = await db
     .select()
@@ -420,7 +424,7 @@ export async function generateDailySummary(
     .where(
       and(
         eq(activitySummaries.org, org),
-        eq(activitySummaries.summaryDate, startOfDay)
+        eq(activitySummaries.summaryDate, summaryDate)
       )
     )
     .limit(1);

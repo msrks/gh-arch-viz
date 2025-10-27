@@ -60,14 +60,30 @@ export async function GET(request: NextRequest) {
 
     const octokit = makeOctokit(githubToken);
 
-    // 4. Calculate date (yesterday)
-    const yesterday = subDays(new Date(), 1);
-    const dateStr = format(yesterday, 'yyyy-MM-dd');
+    // 4. Calculate date range (yesterday in JST: 00:00 - 23:59)
+    // Execution: Monday-Friday 23:00 UTC = Tuesday-Saturday 8:00 JST
+    // Target: Previous day 00:00 JST - 23:59 JST
+    //
+    // JST = UTC + 9 hours
+    // Yesterday 00:00 JST = 2 days ago 15:00 UTC
+    // Yesterday 23:59 JST = 1 day ago 14:59 UTC
+    const now = new Date();
+
+    // Yesterday 14:59:59 UTC = Yesterday 23:59:59 JST
+    const yesterdayEndUTC = subDays(now, 1);
+    yesterdayEndUTC.setUTCHours(14, 59, 59, 999);
+
+    // Yesterday 15:00 UTC = Yesterday 00:00 JST
+    const yesterdayStartUTC = new Date(yesterdayEndUTC);
+    yesterdayStartUTC.setUTCHours(15, 0, 0, 0);
+    yesterdayStartUTC.setUTCDate(yesterdayStartUTC.getUTCDate() - 1); // Go back one more day
+
+    const dateStr = format(yesterdayEndUTC, 'yyyy-MM-dd');
 
     console.log(`[Cron] Generating daily summary for ${org} on ${dateStr}`);
 
-    // 5. Generate summary
-    const summaryId = await generateDailySummary(octokit, org, yesterday);
+    // 5. Generate summary with explicit time range
+    const summaryId = await generateDailySummary(octokit, org, yesterdayStartUTC, yesterdayEndUTC);
 
     // 6. Get generated markdown from database
     const summary = await db
@@ -94,8 +110,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const subject = `GitHub Activity Summary - ${format(yesterday, 'MMMM dd, yyyy')}`;
-    const emailResult = await sendDailySummary(recipients, subject, markdown, yesterday);
+    const subject = `GitHub Activity Summary - ${format(yesterdayEndUTC, 'MMMM dd, yyyy')}`;
+    const emailResult = await sendDailySummary(recipients, subject, markdown, yesterdayEndUTC);
 
     if (!emailResult.success) {
       console.error("Failed to send email:", emailResult.error);
