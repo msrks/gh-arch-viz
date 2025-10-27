@@ -461,7 +461,7 @@ export async function generateDailySummary(
  * @param octokit - Authenticated Octokit instance
  * @param org - Organization name
  * @param startDate - Start date of the week (Monday)
- * @param endDate - End date of the week (Friday)
+ * @param endDate - End date of the week (Sunday)
  * @param useAI - Whether to use AI to enhance the summary (defaults to true)
  * @returns The generated summary ID
  */
@@ -474,7 +474,7 @@ export async function generateWeeklySummary(
 ): Promise<string> {
   console.log(`Generating weekly summary for ${org} from ${format(startDate, 'yyyy-MM-dd')} to ${format(endDate, 'yyyy-MM-dd')}`);
 
-  // Set time range (start of Monday to end of Friday)
+  // Set time range (start of Monday to end of Sunday)
   const startOfWeek = new Date(startDate);
   startOfWeek.setHours(0, 0, 0, 0);
 

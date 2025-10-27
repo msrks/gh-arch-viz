@@ -10,10 +10,10 @@ import { eq } from "drizzle-orm";
 /**
  * Vercel Cron endpoint for generating and sending weekly GitHub activity summaries
  *
- * Schedule: Monday at 11 PM UTC (= Tuesday 8 AM JST)
- * Cron expression: 0 23 * * 1
+ * Schedule: Sunday at 11 PM UTC (= Monday 8 AM JST)
+ * Cron expression: 0 23 * * 0
  *
- * Summarizes activities from the previous week (Monday-Friday)
+ * Summarizes activities from the previous week (Monday 00:00 - Sunday 23:59)
  *
  * Authentication: Bearer token (CRON_SECRET)
  */
@@ -59,19 +59,19 @@ export async function GET(request: NextRequest) {
 
     const octokit = makeOctokit(githubToken);
 
-    // 4. Calculate date range (previous week Monday-Friday)
+    // 4. Calculate date range (previous week Monday-Sunday)
     // Current execution: Sunday 23:00 UTC = Monday 8:00 JST
-    // Target: Previous week's Monday-Friday (1-5 days ago)
+    // Target: Previous week's Monday 00:00 - Sunday 23:59
     const today = new Date();
-    const lastFriday = subDays(today, 2); // Sunday - 2 days = Friday
+    const lastSunday = subDays(today, 0); // Sunday (today in UTC = yesterday in JST)
     const lastMonday = subDays(today, 6); // Sunday - 6 days = Monday
 
-    const weekLabel = `${format(lastMonday, 'MMM dd')} - ${format(lastFriday, 'MMM dd, yyyy')}`;
+    const weekLabel = `${format(lastMonday, 'MMM dd')} - ${format(lastSunday, 'MMM dd, yyyy')}`;
 
     console.log(`[Cron] Generating weekly summary for ${org}: ${weekLabel}`);
 
     // 5. Generate summary
-    const summaryId = await generateWeeklySummary(octokit, org, lastMonday, lastFriday);
+    const summaryId = await generateWeeklySummary(octokit, org, lastMonday, lastSunday);
 
     // 6. Get generated markdown from database
     const summary = await db
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     }
 
     const subject = `GitHub Weekly Summary - ${weekLabel}`;
-    const emailResult = await sendDailySummary(recipients, subject, markdown, lastFriday);
+    const emailResult = await sendDailySummary(recipients, subject, markdown, lastSunday);
 
     if (!emailResult.success) {
       console.error("Failed to send email:", emailResult.error);
