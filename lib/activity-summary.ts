@@ -492,8 +492,8 @@ export async function generateWeeklySummary(
   if (useAI) {
     try {
       console.log("Enhancing weekly summary with AI...");
-      // Use endDate for AI context (the last day of the week)
-      markdown = await enhanceMarkdownWithAI(org, endDate, activityData, baseMarkdown);
+      // Use endDate for AI context (the last day of the week) and specify "weekly" period
+      markdown = await enhanceMarkdownWithAI(org, endDate, activityData, baseMarkdown, "weekly");
       console.log("AI enhancement completed");
     } catch (error) {
       console.warn("AI enhancement failed, using base markdown:", error);

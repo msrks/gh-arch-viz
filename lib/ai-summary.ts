@@ -40,7 +40,8 @@ function getAzureOpenAI() {
 export async function generateAISummary(
   org: string,
   date: Date,
-  data: ActivityData
+  data: ActivityData,
+  periodType: "daily" | "weekly" = "daily"
 ): Promise<string> {
   const model = getAzureOpenAI();
 
@@ -69,10 +70,14 @@ export async function generateAISummary(
     number: issue.number,
   }));
 
-  const prompt = `あなたは開発チームのエンジニアリングマネージャーです。以下のGitHubアクティビティデータを分析して、チームメンバー向けの読みやすく有用なデイリーサマリーを日本語で生成してください。
+  const periodLabel = periodType === "weekly" ? "今週" : "本日";
+  const summaryType = periodType === "weekly" ? "週次サマリー" : "デイリーサマリー";
+  const timeContext = periodType === "weekly" ? "今週何が起きたか" : "今日何が起きたか";
+
+  const prompt = `あなたは開発チームのエンジニアリングマネージャーです。以下のGitHubアクティビティデータを分析して、チームメンバー向けの読みやすく有用な${summaryType}を日本語で生成してください。
 
 組織: ${org}
-日付: ${date.toLocaleDateString("ja-JP")}
+${periodType === "weekly" ? `期間: ${date.toLocaleDateString("ja-JP")} を含む週` : `日付: ${date.toLocaleDateString("ja-JP")}`}
 
 # アクティビティデータ
 
@@ -92,7 +97,7 @@ ${JSON.stringify(issues, null, 2)}
 ## 📊 概要
 - 全体の統計（コミット数、PR数、イシュー数）を簡潔に
 
-## 🎯 本日のハイライト
+## 🎯 ${periodLabel}のハイライト
 - 最も重要な変更や進捗を3-5個箇条書きで
 - 各ハイライトは具体的な内容を含める（例: "ユーザー認証機能の実装が完了", "パフォーマンス改善のためのリファクタリング"）
 
@@ -111,7 +116,7 @@ ${JSON.stringify(issues, null, 2)}
 - 機械的なリストではなく、文章として読みやすく
 - 技術的な詳細は適度に含めつつ、全体像がわかるように
 - コミットメッセージをそのまま列挙するのではなく、意味のある単位でまとめる
-- チームメンバーが「今日何が起きたか」を素早く理解できることを最優先に`;
+- チームメンバーが「${timeContext}」を素早く理解できることを最優先に`;
 
   try {
     const { text } = await generateText({
@@ -133,9 +138,10 @@ export async function enhanceMarkdownWithAI(
   org: string,
   date: Date,
   data: ActivityData,
-  originalMarkdown: string
+  originalMarkdown: string,
+  periodType: "daily" | "weekly" = "daily"
 ): Promise<string> {
-  const aiSummary = await generateAISummary(org, date, data);
+  const aiSummary = await generateAISummary(org, date, data, periodType);
 
   // Combine AI summary with original markdown
   const enhanced = `${aiSummary}\n\n---\n\n## 📋 詳細なアクティビティログ\n\n${originalMarkdown}`;
