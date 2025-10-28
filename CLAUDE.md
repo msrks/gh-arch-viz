@@ -29,6 +29,7 @@ This is a **Next.js 15** application using the **App Router** pattern. This is a
   - `api/queue/scan-repo/route.ts` - QStash worker for background scanning
   - `api/repo/[id]/scan/route.ts` - Single repository scan
   - `api/cron/daily-summary/route.ts` - Vercel Cron scheduled daily activity summary generator
+  - `api/cron/weekly-summary/route.ts` - Vercel Cron scheduled weekly activity summary generator
   - `api/activity/summaries/route.ts` - Get list of past summaries
   - `api/activity/summaries/[date]/route.ts` - Get specific date summary
 - `lib/` - Core business logic and utilities
@@ -36,8 +37,9 @@ This is a **Next.js 15** application using the **App Router** pattern. This is a
   - `github.ts` - Octokit helpers for GitHub API
   - `scan.ts` - Repository scanning pipeline
   - `qstash.ts` - Upstash QStash client for background jobs
-  - `activity-summary.ts` - Daily GitHub activity summary generator
+  - `activity-summary.ts` - Daily/weekly GitHub activity summary generator
   - `email.ts` - Resend email integration for activity summaries
+  - `teams.ts` - Microsoft Teams webhook integration for activity summaries
   - `db/` - Drizzle ORM schema and client
   - `detectors/` - Technology detection modules (Node.js, Next.js, Docker, etc.)
   - `middleware/auth.ts` - Authentication middleware
@@ -55,7 +57,8 @@ This is a **Next.js 15** application using the **App Router** pattern. This is a
 - **Better Auth** for GitHub OAuth authentication
 - **Drizzle ORM** + **PostgreSQL (Neon)** for database
 - **Upstash QStash** for repository scanning background jobs
-- **Vercel Cron Jobs** for scheduled daily summaries
+- **Vercel Cron Jobs** for scheduled daily/weekly summaries
+- **Microsoft Teams** webhooks for activity summary notifications
 - **Octokit** for GitHub API integration
 - **Recharts** for data visualization
 - **Resend** for email delivery
@@ -103,18 +106,23 @@ This project uses **pnpm** as indicated by `pnpm-lock.yaml`. Always use `pnpm` c
 
 **Technology Detection**: Detects frameworks, build tools, CI/CD, deployment targets, containers, IaC, databases, etc.
 
-### Daily Activity Summary
+### Activity Summaries (Daily & Weekly)
 
 **Scheduled Execution**:
 - Uses **Vercel Cron Jobs** (configured in `vercel.json`)
-- Runs Monday-Friday at 11 PM UTC (= Tuesday-Saturday 8 AM JST)
-- Cron expression: `0 23 * * 1-5`
+- **Daily**: Monday-Friday at 11 PM UTC (= Tuesday-Saturday 8 AM JST), cron: `0 23 * * 1-5`
+- **Weekly**: Sunday at 11 PM UTC (= Monday 8 AM JST), cron: `0 23 * * 0`
 - Protected by `CRON_SECRET` authentication
+
+**Delivery Channels**:
+- **Email**: Via Resend API to configured recipients
+- **Microsoft Teams**: Via Power Automate webhook using Adaptive Cards with full width
+- Both channels run in parallel with `Promise.all`
 
 **Why Vercel Cron over QStash?**:
 - Simpler setup (no additional service)
 - Free on all Vercel plans
-- Sufficient for lightweight daily tasks
+- Sufficient for lightweight scheduled tasks
 - Direct integration with Vercel Logs
 
 ### Technology Detectors
@@ -142,7 +150,7 @@ Located in `lib/detectors/`:
 - **Rate Limits**: GitHub API allows 5000 requests/hour for authenticated users
 - **Batch Size**: Configurable in `/api/inventory/scan/route.ts` (default: 10 repos per batch)
 - **Security**: All QStash endpoints use signature verification; Vercel Cron endpoints use `CRON_SECRET` authentication
-- **Daily Summaries**: Scheduled via Vercel Cron Jobs (`0 23 * * 1-5` UTC = 8 AM JST Tue-Sat) to generate daily GitHub activity summaries
+- **Activity Summaries**: Daily (`0 23 * * 1-5` UTC) and Weekly (`0 23 * * 0` UTC) summaries via Vercel Cron Jobs, sent to both email and Microsoft Teams
 
 ## Performance Considerations
 
@@ -150,33 +158,37 @@ Located in `lib/detectors/`:
 - **Batch (10 parallel)**: 17 batches × 3 sec = ~51 seconds (development mode)
 - **QStash**: Distributed processing, no local timeout limits (production mode)
 
-## Daily Activity Summary Feature
+## Activity Summary Feature
 
 ### Overview
-Automated daily GitHub activity digest sent via email every weekday morning at 8 AM JST (Tuesday-Saturday).
+Automated GitHub activity digests sent via **email** and **Microsoft Teams** every weekday morning at 8 AM JST (Tuesday-Saturday for daily, Monday for weekly).
 
 ### Architecture
-- **Scheduled Job**: Vercel Cron Jobs (configured in `vercel.json`)
-- **Endpoint**: `/api/cron/daily-summary` (GET with Bearer token authentication)
-- **Data Collection**: GitHub API calls to fetch commits, PRs, issues from previous day
+- **Scheduled Jobs**: Vercel Cron Jobs (configured in `vercel.json`)
+- **Endpoints**:
+  - `/api/cron/daily-summary` - Last 24 hours of activity
+  - `/api/cron/weekly-summary` - Last 7 days of activity
+- **Data Collection**: GitHub API calls to fetch commits, PRs, issues
 - **Storage**: Markdown summaries stored in `activity_summaries` table
-- **Email Delivery**: Resend API for sending formatted HTML emails
+- **Delivery**: Parallel email (Resend) and Teams (Power Automate webhook) with `Promise.all`
 
 ### Data Sources
 - Organization events via GitHub API
-- Repository commits (filtered by date range)
+- Repository commits (filtered by rolling time windows)
 - Pull requests (opened, merged, closed)
 - Issues (opened, closed, commented)
 - Contributor activity aggregated by member
 
 ### Summary Format
-Markdown document with sections:
-1. **Overview**: Total commits, PRs, issues, active members
-2. **Top Contributors**: Ranked by activity volume
-3. **Repository Activity**: Grouped by repository with detailed breakdown
-4. **Highlights**: Notable events (milestones, releases, etc.)
+Markdown document with AI-enhanced sections:
+1. **📊 Overview**: Total commits, PRs, issues, active members
+2. **🏆 Top Contributors**: Ranked by activity volume (omits 0 values)
+3. **🎯 Highlights**: AI-generated key insights
+4. **👥 Members**: AI-generated member activity summary
+5. **📦 Repositories**: AI-generated repository highlights
+6. **💡 Topics**: AI-generated thematic summary
 
-Markdown is converted to HTML for email delivery using `marked` or `@react-email/components`.
+Weekly summaries show commit counts only (no individual logs to reduce length).
 
 ### Configuration
 
@@ -186,20 +198,36 @@ Markdown is converted to HTML for email delivery using `marked` or `@react-email
 - `ACTIVITY_SUMMARY_RECIPIENTS` - Comma-separated list of recipient emails
 - Resend free tier: 100 emails/day, 3,000 emails/month
 
+**Microsoft Teams (Power Automate)**:
+- `TEAMS_WEBHOOK_URL` - Power Automate webhook URL for posting to Teams channel
+- `TEAMS_MENTION_USERS` - Comma-separated list of UPNs (user@domain.com) to mention in posts
+- Uses Adaptive Cards v1.4 with full width (`msteams.width = "Full"`)
+- Mentions appear as `<at>user0</at>` tags at the top of the card
+
 **Vercel Cron**:
 - `CRON_SECRET` - Random string for authenticating cron requests (generate with `openssl rand -base64 32`)
 - `vercel.json` configuration:
 ```json
 {
-  "crons": [{
-    "path": "/api/cron/daily-summary",
-    "schedule": "0 23 * * 1-5"
-  }]
+  "crons": [
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 23 * * 1-5"
+    },
+    {
+      "path": "/api/cron/weekly-summary",
+      "schedule": "0 23 * * 0"
+    }
+  ]
 }
 ```
-- Cron expression: `0 23 * * 1-5` (Mon-Fri 11 PM UTC = Tue-Sat 8 AM JST)
+- Cron expressions:
+  - Daily: `0 23 * * 1-5` (Mon-Fri 11 PM UTC = Tue-Sat 8 AM JST)
+  - Weekly: `0 23 * * 0` (Sun 11 PM UTC = Mon 8 AM JST)
 - Execution limit: 10 seconds on Hobby plan, 60 seconds on Pro
 
-### Future Integrations
-- **Microsoft Teams**: Planned for Phase 8 using Incoming Webhooks and Adaptive Cards
-- Configuration will use `TEAMS_WEBHOOK_URL` environment variable
+**AI Enhancement (Azure OpenAI)**:
+- `AZURE_OPENAI_API_KEY` - Azure OpenAI API key
+- `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
+- `AZURE_OPENAI_DEPLOYMENT_NAME` - Deployment name (e.g., gpt-4o)
+- Generates contextual insights for Highlights, Members, Repositories, and Topics sections

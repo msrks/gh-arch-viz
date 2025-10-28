@@ -70,9 +70,8 @@ export async function generateAISummary(
     number: issue.number,
   }));
 
-  const periodLabel = periodType === "weekly" ? "今週" : "本日";
+  const periodLabel = periodType === "weekly" ? "今週" : "今日";
   const summaryType = periodType === "weekly" ? "週次サマリー" : "デイリーサマリー";
-  const timeContext = periodType === "weekly" ? "今週何が起きたか" : "今日何が起きたか";
 
   const prompt = `あなたは開発チームのエンジニアリングマネージャーです。以下のGitHubアクティビティデータを分析して、チームメンバー向けの読みやすく有用な${summaryType}を日本語で生成してください。
 
@@ -92,31 +91,35 @@ ${JSON.stringify(issues, null, 2)}
 
 # 生成してほしいサマリーの形式
 
-以下の構成でMarkdown形式のサマリーを生成してください：
+以下の5つのセクションを順番に生成してください。各セクションは番号付きで明確に区切ってください：
 
-## 📊 概要
-- 全体の統計（コミット数、PR数、イシュー数）を簡潔に
+1. **🎯 ${periodLabel}のハイライト**
 
-## 🎯 ${periodLabel}のハイライト
-- 最も重要な変更や進捗を3-5個箇条書きで
-- 各ハイライトは具体的な内容を含める（例: "ユーザー認証機能の実装が完了", "パフォーマンス改善のためのリファクタリング"）
+（最も重要な変更や進捗を箇条書きで最大2つまで。異なるリポジトリの内容を選ぶ。各項目は「リポジトリ名: 具体的な内容」の形式で）
 
-## 👥 アクティブなメンバー
-- コントリビューション上位のメンバーと、その主な作業内容
+2. **👥 アクティブなメンバーの貢献内容**
 
-## 📦 リポジトリ別アクティビティ
-- アクティビティのあったリポジトリごとに、主な変更内容を要約
-- 単なるリストではなく、「何をしたか」「なぜ重要か」がわかる説明
+（コントリビューション上位メンバーの主な作業を2-3文で要約。具体的な機能名や技術要素を含める）
 
-## 💡 注目トピック
-- 複数のコミット/PRから見えるパターンやトレンド
-- 例: "認証機能の強化に関する複数のPR", "テストカバレッジ向上の取り組み"
+3. **📦 リポジトリ別アクティビティ**
+
+（アクティブなリポジトリごとに主な変更内容を要約。箇条書きで。「何をしたか」「どう進んだか」がわかる説明）
+
+4. **💡 注目トピック**
+
+（複数のコミット/PRから見えるパターンやトレンド。チーム全体の方向性や注力分野を箇条書きで）
+
+5. **最後のメッセージ**
+
+（${periodLabel}の成果をポジティブに総括し、来週/明日への示唆や提案を含める。2-3文で）
 
 重要な点：
-- 機械的なリストではなく、文章として読みやすく
-- 技術的な詳細は適度に含めつつ、全体像がわかるように
-- コミットメッセージをそのまま列挙するのではなく、意味のある単位でまとめる
-- チームメンバーが「${timeContext}」を素早く理解できることを最優先に`;
+- 必ず「1. **🎯...」「2. **👥...」のように番号とセクション名を含めて出力する
+- 各セクションの後は改行を入れて区切る
+- 機械的なリストではなく、読みやすい文章で
+- 技術的な詳細は適度に含める
+- 全体として前向きで建設的なトーン
+- 空のセクションは作らない（必ず何か意味のある内容を書く）`;
 
   try {
     const { text } = await generateText({
@@ -132,6 +135,68 @@ ${JSON.stringify(issues, null, 2)}
 }
 
 /**
+ * Parse AI-generated sections from the response
+ */
+function parseAISections(aiText: string): {
+  highlights: string;
+  members: string;
+  repositories: string;
+  topics: string;
+  closing: string;
+} {
+  console.log("=== Parsing AI sections ===");
+  console.log("Raw AI text:", aiText.substring(0, 500));
+
+  // Split by numbered sections with emoji headers
+  const sectionPattern = /\d+\.\s*\*\*[🎯👥📦💡][^*]+\*\*/g;
+  const headers = aiText.match(sectionPattern);
+
+  if (headers && headers.length >= 5) {
+    console.log("Found headers:", headers);
+
+    // Split content by these headers
+    const parts = aiText.split(sectionPattern);
+
+    // parts[0] is before first header (empty), parts[1-5] are the contents
+    if (parts.length >= 6) {
+      const result = {
+        highlights: parts[1]?.trim() || "_AI要約の生成に失敗しました_",
+        members: parts[2]?.trim() || "_AI要約の生成に失敗しました_",
+        repositories: parts[3]?.trim() || "_AI要約の生成に失敗しました_",
+        topics: parts[4]?.trim() || "_AI要約の生成に失敗しました_",
+        closing: parts[5]?.trim() || "_AI要約の生成に失敗しました_",
+      };
+
+      console.log("Parsed sections:", {
+        highlights: result.highlights.substring(0, 100),
+        members: result.members.substring(0, 100),
+        repositories: result.repositories.substring(0, 100),
+        topics: result.topics.substring(0, 100),
+        closing: result.closing.substring(0, 100),
+      });
+
+      return result;
+    }
+  }
+
+  console.warn("Failed to parse AI sections, using fallback");
+
+  // Fallback: try to extract content after each keyword
+  const highlights = aiText.match(/🎯[^🎯👥📦💡]+/)?.[0] || aiText.substring(0, 500);
+  const members = aiText.match(/👥[^🎯👥📦💡]+/)?.[0] || "";
+  const repositories = aiText.match(/📦[^🎯👥📦💡]+/)?.[0] || "";
+  const topics = aiText.match(/💡[^🎯👥📦💡]+/)?.[0] || "";
+
+  return {
+    highlights: highlights.replace(/🎯\s*[^\n]*\n/, '').trim(),
+    members: members.replace(/👥\s*[^\n]*\n/, '').trim(),
+    repositories: repositories.replace(/📦\s*[^\n]*\n/, '').trim(),
+    topics: topics.replace(/💡\s*[^\n]*\n/, '').trim(),
+    closing: "",
+  };
+}
+
+/**
  * Enhance existing markdown summary with AI-generated insights
  */
 export async function enhanceMarkdownWithAI(
@@ -142,9 +207,47 @@ export async function enhanceMarkdownWithAI(
   periodType: "daily" | "weekly" = "daily"
 ): Promise<string> {
   const aiSummary = await generateAISummary(org, date, data, periodType);
+  const sections = parseAISections(aiSummary);
 
-  // Combine AI summary with original markdown
-  const enhanced = `${aiSummary}\n\n---\n\n## 📋 詳細なアクティビティログ\n\n${originalMarkdown}`;
+  console.log("=== Enhancing markdown ===");
+  console.log("Original markdown length:", originalMarkdown.length);
+
+  // Replace placeholders in the original markdown
+  let enhanced = originalMarkdown;
+
+  // Replace each section with AI content
+  enhanced = enhanced.replace(
+    /## 🎯 [^\n]+\n\n_AI要約を生成中..._/,
+    `## 🎯 ${periodType === "weekly" ? "今週" : "今日"}のハイライト\n\n${sections.highlights}`
+  );
+
+  enhanced = enhanced.replace(
+    /## 👥 アクティブなメンバーの貢献内容\n\n_AI要約を生成中..._/,
+    `## 👥 アクティブなメンバーの貢献内容\n\n${sections.members}`
+  );
+
+  enhanced = enhanced.replace(
+    /## 📦 リポジトリ別アクティビティ\n\n_AI要約を生成中..._/,
+    `## 📦 リポジトリ別アクティビティ\n\n${sections.repositories}`
+  );
+
+  enhanced = enhanced.replace(
+    /## 💡 注目トピック\n\n_AI要約を生成中..._/,
+    `## 💡 注目トピック\n\n${sections.topics}`
+  );
+
+  // Remove any remaining placeholder sections (safety cleanup)
+  enhanced = enhanced.replace(/## [🎯👥📦💡][^\n]+\n\n_AI要約を生成中..._\n\n/g, '');
+
+  // Add closing message before footer
+  if (sections.closing) {
+    enhanced = enhanced.replace(
+      /---\n\n\*Generated at/,
+      `\n${sections.closing}\n\n---\n\n*Generated at`
+    );
+  }
+
+  console.log("Enhanced markdown length:", enhanced.length);
 
   return enhanced;
 }

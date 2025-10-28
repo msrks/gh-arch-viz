@@ -3,6 +3,7 @@ import { subDays, format, startOfWeek, endOfWeek } from "date-fns";
 import { makeOctokit } from "@/lib/github";
 import { generateWeeklySummary } from "@/lib/activity-summary";
 import { sendDailySummary, getRecipients } from "@/lib/email";
+import { sendToTeams } from "@/lib/teams";
 import { db } from "@/lib/db";
 import { activitySummaries } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -59,33 +60,16 @@ export async function GET(request: NextRequest) {
 
     const octokit = makeOctokit(githubToken);
 
-    // 4. Calculate date range (previous week Monday-Sunday in JST)
-    // Current execution: Sunday 23:00 UTC = Monday 8:00 JST
-    // Target: Previous Monday 00:00 JST - Sunday 23:59 JST
-    //
-    // JST = UTC + 9 hours
-    // Monday 00:00 JST = Sunday 15:00 UTC (previous day)
-    // Sunday 23:59 JST = Sunday 14:59 UTC (same day)
-    //
-    // At execution time (Sunday 23:00 UTC):
-    // - Last Sunday 14:59 UTC was 8 hours ago
-    // - Previous Monday 00:00 JST = 7 days + 8 hours ago in UTC
+    // 4. Calculate date range (last 7 days from execution time)
     const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Get last Sunday 14:59:59 UTC (= Sunday 23:59:59 JST)
-    const lastSundayUTC = new Date(now);
-    lastSundayUTC.setUTCHours(14, 59, 59, 999);
+    const weekLabel = `${format(sevenDaysAgo, 'MMM dd')} - ${format(now, 'MMM dd, yyyy')}`;
 
-    // Get last Monday 15:00 UTC (= Monday 00:00 JST)
-    const lastMondayUTC = subDays(lastSundayUTC, 6);
-    lastMondayUTC.setUTCHours(15, 0, 0, 0);
-
-    const weekLabel = `${format(lastMondayUTC, 'MMM dd')} - ${format(lastSundayUTC, 'MMM dd, yyyy')}`;
-
-    console.log(`[Cron] Generating weekly summary for ${org}: ${weekLabel}`);
+    console.log(`[Cron] Generating weekly summary for ${org} (last 7 days: ${sevenDaysAgo.toISOString()} - ${now.toISOString()})`);
 
     // 5. Generate summary (pass UTC times directly - they will be used as-is by GitHub API)
-    const summaryId = await generateWeeklySummary(octokit, org, lastMondayUTC, lastSundayUTC);
+    const summaryId = await generateWeeklySummary(octokit, org, sevenDaysAgo, now);
 
     // 6. Get generated markdown from database
     const summary = await db
@@ -100,46 +84,55 @@ export async function GET(request: NextRequest) {
 
     const markdown = summary[0].markdown;
 
-    // 7. Send email
+    // 7. Send to email and Teams in parallel
     const recipients = await getRecipients(org);
-    if (recipients.length === 0) {
-      console.warn("No recipients found in database or environment variable, skipping email");
-      return NextResponse.json({
-        success: true,
-        summaryId,
-        message: "Summary generated but no recipients found",
-        weekLabel,
-      });
-    }
-
     const subject = `GitHub Weekly Summary - ${weekLabel}`;
-    const emailResult = await sendDailySummary(recipients, subject, markdown, lastSundayUTC);
 
-    if (!emailResult.success) {
+    const [emailResult, teamsResult] = await Promise.all([
+      recipients.length > 0
+        ? sendDailySummary(recipients, subject, markdown, now)
+        : Promise.resolve({ success: false, error: 'No recipients configured' }),
+      sendToTeams(markdown, org, now),
+    ]);
+
+    // Log results
+    if (recipients.length === 0) {
+      console.warn("No email recipients found in database or environment variable, skipped email");
+    } else if (!emailResult.success) {
       console.error("Failed to send email:", emailResult.error);
-      return NextResponse.json(
-        {
-          error: "Failed to send email",
-          details: emailResult.error,
-          summaryId,
-        },
-        { status: 500 }
-      );
+    } else {
+      console.log(`[Cron] Successfully sent email to ${recipients.length} recipients`);
     }
 
-    // 8. Update sentAt timestamp
-    await db
-      .update(activitySummaries)
-      .set({ sentAt: new Date() })
-      .where(eq(activitySummaries.id, summaryId));
+    if (!teamsResult.success) {
+      console.warn("Failed to send to Teams:", teamsResult.error);
+    } else {
+      console.log("[Cron] Successfully sent to Teams");
+    }
 
-    console.log(`[Cron] Successfully sent weekly summary ${summaryId} to ${recipients.length} recipients`);
+    // 8. Update sentAt timestamp (if at least one notification succeeded)
+    if (emailResult.success || teamsResult.success) {
+      await db
+        .update(activitySummaries)
+        .set({ sentAt: new Date() })
+        .where(eq(activitySummaries.id, summaryId));
+    }
+
+    console.log(`[Cron] Completed weekly summary ${summaryId}`);
 
     return NextResponse.json({
       success: true,
       summaryId,
-      emailId: emailResult.id,
-      recipients: recipients.length,
+      email: {
+        sent: emailResult.success,
+        recipients: recipients.length,
+        emailId: 'id' in emailResult ? emailResult.id : undefined,
+        error: 'error' in emailResult ? emailResult.error : undefined,
+      },
+      teams: {
+        sent: teamsResult.success,
+        error: 'error' in teamsResult ? teamsResult.error : undefined,
+      },
       weekLabel,
     });
   } catch (error) {

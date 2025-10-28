@@ -24,7 +24,7 @@
 - **📊 Visual Insights** - Charts and graphs showing technology distribution
 - **👥 Member Management** - View organization members with roles, avatars, and activity
 - **👤 Contributors Display** - View repository contributors with avatars and contribution counts
-- **📬 Daily Activity Summary** - Automated daily digest of GitHub activity (commits, PRs, issues) sent via email (Resend) every weekday morning at 8 AM JST
+- **📬 Activity Summaries** - Automated daily/weekly digests of GitHub activity (commits, PRs, issues) sent via email (Resend) and Microsoft Teams every weekday morning at 8 AM JST
 - **⚡ Fast Scanning** - Batch parallel processing (dev) or QStash background jobs (prod)
 - **🕒 Smart Sorting** - Repositories sorted by last push date with "X days ago" display
 - **🎨 Modern UI** - Built with shadcn/ui, Tailwind CSS v4, and GitHub language colors
@@ -37,7 +37,7 @@
 - **Database**: PostgreSQL (Neon) + Drizzle ORM
 - **Auth**: Better Auth (GitHub OAuth)
 - **Visualization**: Recharts
-- **Email**: Resend
+- **Email & Teams**: Resend, Microsoft Teams (Power Automate)
 - **Package Manager**: pnpm
 
 ## 📦 Prerequisites
@@ -48,6 +48,7 @@
 - GitHub OAuth App credentials
 - Upstash QStash account (for repository scanning background jobs)
 - Resend account (for email delivery)
+- Microsoft Teams channel with Power Automate webhook (for Teams notifications)
 - Vercel account (for cron jobs - included with deployment)
 
 ## 🔧 Setup
@@ -100,7 +101,19 @@ pnpm install
 
 **Note**: Resend free tier includes 100 emails/day and 3,000 emails/month.
 
-### 6. Configure environment variables
+### 6. Set up Microsoft Teams Webhook (Optional)
+
+1. Create a Power Automate workflow:
+   - Go to [Power Automate](https://make.powerautomate.com/)
+   - Create a new **Instant cloud flow** with **When a HTTP request is received** trigger
+   - Add action: **Post adaptive card in a chat or channel** (Microsoft Teams)
+   - Configure to post to your desired Teams channel
+   - Get the HTTP POST URL from the trigger
+2. Copy the webhook URL from Power Automate
+
+**Note**: This enables posting activity summaries to Microsoft Teams alongside email notifications.
+
+### 7. Configure environment variables
 
 Copy `.env.example` to `.env`:
 
@@ -138,6 +151,10 @@ RESEND_FROM_EMAIL="noreply@your-domain.com"  # Your verified sender email
 # Daily Activity Summary Recipients (Optional)
 ACTIVITY_SUMMARY_RECIPIENTS="email1@example.com,email2@example.com"  # Comma-separated
 
+# Microsoft Teams Webhook (Optional)
+TEAMS_WEBHOOK_URL="<your-power-automate-webhook-url>"
+TEAMS_MENTION_USERS="user1@company.com,user2@company.com"  # UPNs to mention
+
 # Vercel Cron Secret (generate a random string)
 CRON_SECRET="<generate-a-long-random-string>"
 ```
@@ -147,9 +164,11 @@ CRON_SECRET="<generate-a-long-random-string>"
 - Leave `ALLOWED_GH_TEAM_SLUG=""` (empty string) to allow all organization members to access the app.
 - For `RESEND_FROM_EMAIL`, use a verified domain email or `onboarding@resend.dev` for testing
 - `ACTIVITY_SUMMARY_RECIPIENTS` should be a comma-separated list of email addresses to receive daily summaries
+- `TEAMS_WEBHOOK_URL` is the Power Automate webhook URL for posting to Teams (optional)
+- `TEAMS_MENTION_USERS` should be comma-separated UPNs (user@domain.com) to mention in Teams posts (optional)
 - `CRON_SECRET` is used to authenticate Vercel Cron requests - generate with `openssl rand -base64 32`
 
-### 7. Set up Vercel Cron Jobs (Optional)
+### 8. Set up Vercel Cron Jobs (Optional)
 
 If you want to enable automated daily GitHub activity summaries:
 
@@ -160,12 +179,18 @@ If you want to enable automated daily GitHub activity summaries:
     {
       "path": "/api/cron/daily-summary",
       "schedule": "0 23 * * 1-5"
+    },
+    {
+      "path": "/api/cron/weekly-summary",
+      "schedule": "0 23 * * 0"
     }
   ]
 }
 ```
 
-2. The cron expression `0 23 * * 1-5` runs Monday-Friday at 11 PM UTC (= Tuesday-Saturday 8 AM JST)
+2. Cron expressions:
+   - Daily: `0 23 * * 1-5` runs Monday-Friday at 11 PM UTC (= Tuesday-Saturday 8 AM JST)
+   - Weekly: `0 23 * * 0` runs Sunday at 11 PM UTC (= Monday 8 AM JST)
 
 3. Deploy to Vercel - cron jobs are automatically configured
 
@@ -218,8 +243,9 @@ Open [http://localhost:3000](http://localhost:3000)
    - Analyze technology distribution across your organization
 
 6. **View Activity Summaries**
-   - Click "Activity" to see daily GitHub activity summaries
-   - Automatically generated every weekday at 8 AM JST (Tue-Sat)
+   - Click "Activity" to see daily and weekly GitHub activity summaries
+   - Automatically generated every weekday at 8 AM JST
+   - Delivered via email and Microsoft Teams (if configured)
    - View past summaries with detailed breakdowns by repository and member
 
 ### Rescanning
@@ -305,7 +331,9 @@ Make sure to set these in your hosting platform:
 - `QSTASH_NEXT_SIGNING_KEY`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
-- `ACTIVITY_SUMMARY_RECIPIENTS` (optional, for daily summaries)
+- `ACTIVITY_SUMMARY_RECIPIENTS` (optional, for email summaries)
+- `TEAMS_WEBHOOK_URL` (optional, for Teams notifications)
+- `TEAMS_MENTION_USERS` (optional, for Teams mentions)
 - `CRON_SECRET`
 
 ## 🐛 Troubleshooting
@@ -342,8 +370,9 @@ Make sure to set these in your hosting platform:
 
 - [x] **Background Jobs**: Upstash QStash integration for scalable scanning
 - [x] **Organization-wide Scanning**: Support for scanning all org repos (not just team repos)
-- [x] **Daily Activity Summary**: Automated GitHub activity digest sent via email (Resend)
-- [ ] **Microsoft Teams Integration**: Post activity summaries to Teams channels
+- [x] **Activity Summaries**: Automated daily/weekly GitHub activity digests
+- [x] **Email Delivery**: Activity summaries sent via Resend
+- [x] **Microsoft Teams Integration**: Post activity summaries to Teams channels via Power Automate webhooks
 - [ ] **Policy Engine**: Define and enforce technology standards
 - [ ] **Scheduled Scans**: Automatic daily/weekly rescans via QStash
 - [ ] **GitHub App**: Replace OAuth with GitHub App for better security

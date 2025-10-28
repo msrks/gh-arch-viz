@@ -272,6 +272,17 @@ function formatIssueSummary(issues: ActivityData['issues']): string {
 }
 
 /**
+ * Format contributor stats (omit 0 values)
+ */
+function formatContributorStats(stats: { commits: number; pullRequests: number; issues: number }): string {
+  const parts: string[] = [];
+  if (stats.commits > 0) parts.push(`${stats.commits} commits`);
+  if (stats.pullRequests > 0) parts.push(`${stats.pullRequests} PRs`);
+  if (stats.issues > 0) parts.push(`${stats.issues} issues`);
+  return parts.join(', ');
+}
+
+/**
  * Generate markdown summary from activity data
  */
 export function generateMarkdown(
@@ -294,7 +305,7 @@ export function generateMarkdown(
   const memberStats = groupByMember(data);
   const topContributors = Array.from(memberStats.entries())
     .sort((a, b) => b[1].totalActivity - a[1].totalActivity)
-    .slice(0, 5);
+    .slice(0, 10);
 
   // Group by repository
   const repoGroups = groupByRepository(data);
@@ -309,58 +320,47 @@ export function generateMarkdown(
       (a[1].commits.length + a[1].pullRequests.length + a[1].issues.length)
     );
 
-  // Build markdown
+  // Build markdown with new format
   let markdown = `# GitHub Activity Summary - ${formattedDate}\n\n`;
   markdown += `**Organization**: ${org}\n\n`;
 
-  // Overview section
-  markdown += `## 📊 Overview\n\n`;
+  // Section 1: Overview
+  markdown += `## 📊 Daily Overview\n\n`;
   markdown += `- **Total Commits**: ${totalCommits}\n`;
   markdown += `- **Pull Requests**: ${totalPRs} (${mergedPRs} merged, ${openPRs} open)\n`;
   markdown += `- **Issues**: ${totalIssues} (${openedIssues} opened, ${closedIssues} closed)\n`;
-  markdown += `- **Active Members**: ${memberStats.size}\n`;
   markdown += `- **Active Repositories**: ${activeRepos.length}\n\n`;
 
-  // Top contributors section
+  // Section 2: Top Contributors
   if (topContributors.length > 0) {
-    markdown += `## 👥 Top Contributors\n\n`;
-    topContributors.forEach(([username, stats], index) => {
-      markdown += `${index + 1}. **@${username}** - ${stats.commits} commits, ${stats.pullRequests} PRs, ${stats.issues} issues\n`;
+    markdown += `## 🏆 Top Contributors Today\n\n`;
+    topContributors.forEach(([username, stats]) => {
+      const statsStr = formatContributorStats(stats);
+      markdown += `- @${username} - ${statsStr}\n`;
     });
     markdown += `\n`;
   }
 
-  // Repository activity section
-  if (activeRepos.length > 0) {
-    markdown += `## 📦 Repository Activity\n\n`;
-    activeRepos.slice(0, 10).forEach(([repo, activity]) => {
-      markdown += `### ${repo}\n\n`;
+  // Section 3: Today's Highlights (placeholder - will be enhanced by AI)
+  markdown += `## 🎯 今日のハイライト\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.commits.length > 0) {
-        markdown += `**Commits (${activity.commits.length})**:\n`;
-        markdown += formatCommitSummary(activity.commits) + '\n\n';
-      }
+  // Section 4: Active Members (placeholder - will be enhanced by AI)
+  markdown += `## 👥 アクティブなメンバーの貢献内容\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.pullRequests.length > 0) {
-        markdown += `**Pull Requests (${activity.pullRequests.length})**:\n`;
-        markdown += formatPRSummary(activity.pullRequests) + '\n\n';
-      }
+  // Section 5: Repository Activity (placeholder - will be enhanced by AI)
+  markdown += `## 📦 リポジトリ別アクティビティ\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.issues.length > 0) {
-        markdown += `**Issues (${activity.issues.length})**:\n`;
-        markdown += formatIssueSummary(activity.issues) + '\n\n';
-      }
-    });
-
-    if (activeRepos.length > 10) {
-      markdown += `_... and ${activeRepos.length - 10} more repositories with activity_\n\n`;
-    }
-  }
+  // Section 6: Notable Topics (placeholder - will be enhanced by AI)
+  markdown += `## 💡 注目トピック\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
   // No activity message
   if (totalCommits === 0 && totalPRs === 0 && totalIssues === 0) {
     markdown += `## 🤷 No Activity\n\n`;
-    markdown += `No commits, pull requests, or issues were created on ${formattedDate}.\n\n`;
+    markdown += `本日のアクティビティはありませんでした。\n\n`;
   }
 
   // Footer
@@ -590,58 +590,47 @@ function generateWeeklyMarkdown(
       (a[1].commits.length + a[1].pullRequests.length + a[1].issues.length)
     );
 
-  // Build markdown
+  // Build markdown with new format
   let markdown = `# GitHub Weekly Summary - ${weekLabel}\n\n`;
   markdown += `**Organization**: ${org}\n\n`;
 
-  // Overview section
+  // Section 1: Overview
   markdown += `## 📊 Weekly Overview\n\n`;
   markdown += `- **Total Commits**: ${totalCommits}\n`;
   markdown += `- **Pull Requests**: ${totalPRs} (${mergedPRs} merged, ${openPRs} open)\n`;
   markdown += `- **Issues**: ${totalIssues} (${openedIssues} opened, ${closedIssues} closed)\n`;
-  markdown += `- **Active Members**: ${memberStats.size}\n`;
   markdown += `- **Active Repositories**: ${activeRepos.length}\n\n`;
 
-  // Top contributors section
+  // Section 2: Top Contributors
   if (topContributors.length > 0) {
     markdown += `## 🏆 Top Contributors This Week\n\n`;
-    topContributors.forEach(([username, stats], index) => {
-      markdown += `${index + 1}. **@${username}** - ${stats.commits} commits, ${stats.pullRequests} PRs, ${stats.issues} issues\n`;
+    topContributors.forEach(([username, stats]) => {
+      const statsStr = formatContributorStats(stats);
+      markdown += `- @${username} - ${statsStr}\n`;
     });
     markdown += `\n`;
   }
 
-  // Repository activity section (show top 15 for weekly)
-  if (activeRepos.length > 0) {
-    markdown += `## 📦 Repository Activity\n\n`;
-    activeRepos.slice(0, 15).forEach(([repo, activity]) => {
-      markdown += `### ${repo}\n\n`;
+  // Section 3: This Week's Highlights (placeholder - will be enhanced by AI)
+  markdown += `## 🎯 今週のハイライト\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.commits.length > 0) {
-        markdown += `**Commits (${activity.commits.length})**:\n`;
-        markdown += formatCommitSummary(activity.commits) + '\n\n';
-      }
+  // Section 4: Active Members (placeholder - will be enhanced by AI)
+  markdown += `## 👥 アクティブなメンバーの貢献内容\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.pullRequests.length > 0) {
-        markdown += `**Pull Requests (${activity.pullRequests.length})**:\n`;
-        markdown += formatPRSummary(activity.pullRequests) + '\n\n';
-      }
+  // Section 5: Repository Activity (placeholder - will be enhanced by AI)
+  markdown += `## 📦 リポジトリ別アクティビティ\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
-      if (activity.issues.length > 0) {
-        markdown += `**Issues (${activity.issues.length})**:\n`;
-        markdown += formatIssueSummary(activity.issues) + '\n\n';
-      }
-    });
-
-    if (activeRepos.length > 15) {
-      markdown += `_... and ${activeRepos.length - 15} more repositories with activity_\n\n`;
-    }
-  }
+  // Section 6: Notable Topics (placeholder - will be enhanced by AI)
+  markdown += `## 💡 注目トピック\n\n`;
+  markdown += `_AI要約を生成中..._\n\n`;
 
   // No activity message
   if (totalCommits === 0 && totalPRs === 0 && totalIssues === 0) {
     markdown += `## 🤷 No Activity\n\n`;
-    markdown += `No commits, pull requests, or issues were created this week.\n\n`;
+    markdown += `今週のアクティビティはありませんでした。\n\n`;
   }
 
   // Footer

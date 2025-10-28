@@ -3,6 +3,7 @@ import { subDays, format } from "date-fns";
 import { makeOctokit } from "@/lib/github";
 import { generateDailySummary } from "@/lib/activity-summary";
 import { sendDailySummary, getRecipients } from "@/lib/email";
+import { sendToTeams } from "@/lib/teams";
 import { db } from "@/lib/db";
 import { activitySummaries } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -60,30 +61,16 @@ export async function GET(request: NextRequest) {
 
     const octokit = makeOctokit(githubToken);
 
-    // 4. Calculate date range (yesterday in JST: 00:00 - 23:59)
-    // Execution: Monday-Friday 23:00 UTC = Tuesday-Saturday 8:00 JST
-    // Target: Previous day 00:00 JST - 23:59 JST
-    //
-    // JST = UTC + 9 hours
-    // Yesterday 00:00 JST = 2 days ago 15:00 UTC
-    // Yesterday 23:59 JST = 1 day ago 14:59 UTC
+    // 4. Calculate date range (last 24 hours from execution time)
     const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Yesterday 14:59:59 UTC = Yesterday 23:59:59 JST
-    const yesterdayEndUTC = subDays(now, 1);
-    yesterdayEndUTC.setUTCHours(14, 59, 59, 999);
+    const dateStr = format(now, 'yyyy-MM-dd');
 
-    // Yesterday 15:00 UTC = Yesterday 00:00 JST
-    const yesterdayStartUTC = new Date(yesterdayEndUTC);
-    yesterdayStartUTC.setUTCHours(15, 0, 0, 0);
-    yesterdayStartUTC.setUTCDate(yesterdayStartUTC.getUTCDate() - 1); // Go back one more day
-
-    const dateStr = format(yesterdayEndUTC, 'yyyy-MM-dd');
-
-    console.log(`[Cron] Generating daily summary for ${org} on ${dateStr}`);
+    console.log(`[Cron] Generating daily summary for ${org} (last 24 hours: ${twentyFourHoursAgo.toISOString()} - ${now.toISOString()})`);
 
     // 5. Generate summary with explicit time range
-    const summaryId = await generateDailySummary(octokit, org, yesterdayStartUTC, yesterdayEndUTC);
+    const summaryId = await generateDailySummary(octokit, org, twentyFourHoursAgo, now);
 
     // 6. Get generated markdown from database
     const summary = await db
@@ -98,46 +85,55 @@ export async function GET(request: NextRequest) {
 
     const markdown = summary[0].markdown;
 
-    // 7. Send email
+    // 7. Send to email and Teams in parallel
     const recipients = await getRecipients(org);
+    const subject = `GitHub Activity Summary - ${format(now, 'MMMM dd, yyyy')}`;
+
+    const [emailResult, teamsResult] = await Promise.all([
+      recipients.length > 0
+        ? sendDailySummary(recipients, subject, markdown, now)
+        : Promise.resolve({ success: false, error: 'No recipients configured' }),
+      sendToTeams(markdown, org, now),
+    ]);
+
+    // Log results
     if (recipients.length === 0) {
-      console.warn("No recipients found in database or environment variable, skipping email");
-      return NextResponse.json({
-        success: true,
-        summaryId,
-        message: "Summary generated but no recipients found",
-        date: dateStr,
-      });
-    }
-
-    const subject = `GitHub Activity Summary - ${format(yesterdayEndUTC, 'MMMM dd, yyyy')}`;
-    const emailResult = await sendDailySummary(recipients, subject, markdown, yesterdayEndUTC);
-
-    if (!emailResult.success) {
+      console.warn("No email recipients found in database or environment variable, skipped email");
+    } else if (!emailResult.success) {
       console.error("Failed to send email:", emailResult.error);
-      return NextResponse.json(
-        {
-          error: "Failed to send email",
-          details: emailResult.error,
-          summaryId,
-        },
-        { status: 500 }
-      );
+    } else {
+      console.log(`[Cron] Successfully sent email to ${recipients.length} recipients`);
     }
 
-    // 8. Update sentAt timestamp
-    await db
-      .update(activitySummaries)
-      .set({ sentAt: new Date() })
-      .where(eq(activitySummaries.id, summaryId));
+    if (!teamsResult.success) {
+      console.warn("Failed to send to Teams:", teamsResult.error);
+    } else {
+      console.log("[Cron] Successfully sent to Teams");
+    }
 
-    console.log(`[Cron] Successfully sent daily summary ${summaryId} to ${recipients.length} recipients`);
+    // 8. Update sentAt timestamp (if at least one notification succeeded)
+    if (emailResult.success || teamsResult.success) {
+      await db
+        .update(activitySummaries)
+        .set({ sentAt: new Date() })
+        .where(eq(activitySummaries.id, summaryId));
+    }
+
+    console.log(`[Cron] Completed daily summary ${summaryId}`);
 
     return NextResponse.json({
       success: true,
       summaryId,
-      emailId: emailResult.id,
-      recipients: recipients.length,
+      email: {
+        sent: emailResult.success,
+        recipients: recipients.length,
+        emailId: 'id' in emailResult ? emailResult.id : undefined,
+        error: 'error' in emailResult ? emailResult.error : undefined,
+      },
+      teams: {
+        sent: teamsResult.success,
+        error: 'error' in teamsResult ? teamsResult.error : undefined,
+      },
       date: dateStr,
     });
   } catch (error) {
