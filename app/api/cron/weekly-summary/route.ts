@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { subDays, format, startOfWeek, endOfWeek } from "date-fns";
+import { format } from "date-fns";
 import { makeOctokit } from "@/lib/github";
 import { generateWeeklySummary } from "@/lib/activity-summary";
 import { sendDailySummary, getRecipients } from "@/lib/email";

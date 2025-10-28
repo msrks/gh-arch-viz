@@ -44,7 +44,7 @@ function convertMarkdownToAdaptiveCard(markdown: string, summaryDate: Date): Tea
 
   // Build mention entities for msteams
   const entities = mentionUsers.map((upn, index) => ({
-    type: "mention",
+    type: "mention" as const,
     text: `<at>user${index}</at>`,
     mentioned: {
       id: upn,
