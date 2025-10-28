@@ -29,28 +29,38 @@ function markdownToHtml(markdown: string): string {
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-      line-height: 1.6;
+      line-height: 1.5;
       color: #24292e;
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 16px;
       background-color: #ffffff;
+      font-size: 13px;
     }
     h1 {
       color: #0366d6;
       border-bottom: 2px solid #0366d6;
-      padding-bottom: 10px;
+      padding-bottom: 6px;
       margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 600;
     }
     h2 {
       color: #0366d6;
       border-bottom: 1px solid #e1e4e8;
-      padding-bottom: 8px;
-      margin-top: 32px;
+      padding-bottom: 4px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 600;
     }
     h3 {
       color: #24292e;
-      margin-top: 24px;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 600;
     }
     a {
       color: #0366d6;
@@ -61,37 +71,42 @@ function markdownToHtml(markdown: string): string {
     }
     code {
       background-color: #f6f8fa;
-      padding: 2px 6px;
+      padding: 2px 4px;
       border-radius: 3px;
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 85%;
+      font-size: 12px;
     }
     pre {
       background-color: #f6f8fa;
-      padding: 16px;
-      border-radius: 6px;
+      padding: 12px;
+      border-radius: 4px;
       overflow-x: auto;
+      font-size: 12px;
     }
     pre code {
       background-color: transparent;
       padding: 0;
     }
     ul, ol {
-      padding-left: 2em;
+      padding-left: 1.5em;
+      margin: 8px 0;
     }
     li {
-      margin-bottom: 4px;
+      margin-bottom: 2px;
+    }
+    p {
+      margin: 8px 0;
     }
     blockquote {
-      border-left: 4px solid #dfe2e5;
-      padding-left: 16px;
+      border-left: 3px solid #dfe2e5;
+      padding-left: 12px;
       color: #6a737d;
-      margin-left: 0;
+      margin: 8px 0;
     }
     hr {
       border: 0;
       border-top: 1px solid #e1e4e8;
-      margin: 24px 0;
+      margin: 16px 0;
     }
     strong {
       font-weight: 600;
@@ -103,12 +118,13 @@ function markdownToHtml(markdown: string): string {
     table {
       border-collapse: collapse;
       width: 100%;
-      margin: 16px 0;
+      margin: 12px 0;
+      font-size: 12px;
     }
     table th,
     table td {
       border: 1px solid #dfe2e5;
-      padding: 8px 12px;
+      padding: 6px 8px;
       text-align: left;
     }
     table th {
@@ -119,11 +135,11 @@ function markdownToHtml(markdown: string): string {
       background-color: #f6f8fa;
     }
     .footer {
-      margin-top: 48px;
-      padding-top: 16px;
+      margin-top: 24px;
+      padding-top: 12px;
       border-top: 1px solid #e1e4e8;
       color: #6a737d;
-      font-size: 14px;
+      font-size: 11px;
     }
   </style>
 </head>
