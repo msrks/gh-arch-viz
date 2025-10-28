@@ -73,12 +73,30 @@ export async function generateAISummary(
   const periodLabel = periodType === "weekly" ? "今週" : "今日";
   const summaryType = periodType === "weekly" ? "週次サマリー" : "デイリーサマリー";
 
+  // Get list of all active repositories
+  const activeRepos = new Set<string>();
+  data.commits.forEach(c => activeRepos.add(c.repo));
+  data.pullRequests.forEach(pr => activeRepos.add(pr.repo));
+  data.issues.forEach(issue => activeRepos.add(issue.repo));
+  const repoList = Array.from(activeRepos).sort();
+
+  // Count activities per repository
+  const repoStats = repoList.map(repo => {
+    const commitCount = data.commits.filter(c => c.repo === repo).length;
+    const prCount = data.pullRequests.filter(pr => pr.repo === repo).length;
+    const issueCount = data.issues.filter(issue => issue.repo === repo).length;
+    return { repo, commits: commitCount, prs: prCount, issues: issueCount };
+  });
+
   const prompt = `あなたは開発チームのエンジニアリングマネージャーです。以下のGitHubアクティビティデータを分析して、チームメンバー向けの読みやすく有用な${summaryType}を日本語で生成してください。
 
 組織: ${org}
 ${periodType === "weekly" ? `期間: ${date.toLocaleDateString("ja-JP")} を含む週` : `日付: ${date.toLocaleDateString("ja-JP")}`}
 
 # アクティビティデータ
+
+## アクティブなリポジトリ一覧 (${repoList.length}個)
+${JSON.stringify(repoStats, null, 2)}
 
 ## コミット (${data.commits.length}件)
 ${JSON.stringify(commits, null, 2)}
@@ -103,7 +121,7 @@ ${JSON.stringify(issues, null, 2)}
 
 3. **📦 リポジトリ別アクティビティ**
 
-（アクティブなリポジトリごとに主な変更内容を要約。箇条書きで。「何をしたか」「どう進んだか」がわかる説明）
+（アクティビティがあった全てのリポジトリについて、それぞれ主な変更内容を箇条書きで要約。各項目は「- リポジトリ名: 具体的な変更内容」の形式で。全リポジトリを漏れなく記載すること）
 
 4. **💡 注目トピック**
 
