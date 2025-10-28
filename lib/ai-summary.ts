@@ -88,12 +88,30 @@ export async function generateAISummary(
     return { repo, commits: commitCount, prs: prCount, issues: issueCount };
   });
 
+  // Get list of all active members
+  const activeMembers = new Set<string>();
+  data.commits.forEach(c => activeMembers.add(c.author));
+  data.pullRequests.forEach(pr => activeMembers.add(pr.author));
+  data.issues.forEach(issue => activeMembers.add(issue.author));
+  const memberList = Array.from(activeMembers).sort();
+
+  // Count activities per member
+  const memberStats = memberList.map(member => {
+    const commitCount = data.commits.filter(c => c.author === member).length;
+    const prCount = data.pullRequests.filter(pr => pr.author === member).length;
+    const issueCount = data.issues.filter(issue => issue.author === member).length;
+    return { member, commits: commitCount, prs: prCount, issues: issueCount };
+  });
+
   const prompt = `あなたは開発チームのエンジニアリングマネージャーです。以下のGitHubアクティビティデータを分析して、チームメンバー向けの読みやすく有用な${summaryType}を日本語で生成してください。
 
 組織: ${org}
 ${periodType === "weekly" ? `期間: ${date.toLocaleDateString("ja-JP")} を含む週` : `日付: ${date.toLocaleDateString("ja-JP")}`}
 
 # アクティビティデータ
+
+## アクティブなメンバー一覧 (${memberList.length}人)
+${JSON.stringify(memberStats, null, 2)}
 
 ## アクティブなリポジトリ一覧 (${repoList.length}個)
 ${JSON.stringify(repoStats, null, 2)}
@@ -117,7 +135,7 @@ ${JSON.stringify(issues, null, 2)}
 
 2. **👥 アクティブなメンバーの貢献内容**
 
-（コントリビューション上位メンバーの主な作業を2-3文で要約。具体的な機能名や技術要素を含める）
+（アクティビティがあった全てのメンバーについて、それぞれの主な作業を箇条書きで要約。各項目は「- @メンバー名: 具体的な貢献内容」の形式で。全メンバーを漏れなく記載すること）
 
 3. **📦 リポジトリ別アクティビティ**
 
