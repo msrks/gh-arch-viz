@@ -1,6 +1,6 @@
 # gh-arch-viz 開発進捗管理
 
-> 最終更新: 2025-10-06 ✅ **実装完了**
+> 最終更新: 2025-10-31 ✅ **Phase 8 完了 - 全機能実装完了**
 
 ## 📋 プロジェクト概要
 
@@ -462,12 +462,14 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 - [x] **ナビゲーション統合**
   - [x] 共有ナビゲーションに "Activity" リンク追加
 
-### 7.9 配信機能（将来対応）
+### 7.9 配信機能
 
-- [ ] **Microsoft Teams 統合（Phase 8で実装予定）**
-  - [ ] Teams Webhook URL設定（環境変数）
-  - [ ] `lib/teams.ts` - Teams投稿関数
-  - [ ] Adaptive Cardsフォーマットでの投稿
+- [x] **Microsoft Teams 統合**
+  - [x] Teams Webhook URL設定（環境変数）
+  - [x] `lib/teams.ts` - Teams投稿関数
+  - [x] Adaptive Cardsフォーマット v1.4 でのフル幅投稿
+  - [x] メンション機能（`TEAMS_MENTION_USERS`）
+  - [x] 週次サマリー対応
 
 ### 7.10 テスト・デバッグ
 
@@ -547,6 +549,94 @@ GitHub の org/team メンバー限定で、チームがアクセスできるリ
 ---
 Generated at: 2025-10-24 08:00 JST
 ```
+
+---
+
+## 📬 Phase 8: Weekly Summary & Teams Integration
+
+### 8.1 週次サマリー機能
+
+- [x] **週次サマリー生成**
+  - [x] `generateWeeklySummary()` 関数実装 (`lib/activity-summary.ts`)
+  - [x] 月曜00:00 JST 〜 日曜23:59 JST の7日間集計
+  - [x] コミット数のみ表示（個別ログは非表示）
+  - [x] AI要約対応（"weekly" period指定）
+
+- [x] **Vercel Cron設定**
+  - [x] `vercel.json` に weekly-summary 追加
+  - [x] Cron式: `0 23 * * 0` (日曜23:00 UTC = 月曜8:00 JST)
+  - [x] `/api/cron/weekly-summary` エンドポイント実装
+  - [x] CRON_SECRET 認証
+
+### 8.2 Microsoft Teams統合
+
+- [x] **Teams Webhook実装**
+  - [x] `lib/teams.ts` 作成
+  - [x] `sendDailySummaryToTeams()` 実装
+  - [x] `sendWeeklySummaryToTeams()` 実装
+  - [x] Adaptive Cards v1.4 フォーマット
+  - [x] フル幅表示 (`msteams.width = "Full"`)
+
+- [x] **メンション機能**
+  - [x] `TEAMS_MENTION_USERS` 環境変数対応
+  - [x] カンマ区切りUPN (user@domain.com) サポート
+  - [x] `<at>user</at>` タグ生成
+  - [x] entities配列でメンションマッピング
+
+- [x] **日次・週次の並列配信**
+  - [x] Email と Teams を `Promise.all` で並列実行
+  - [x] `/api/cron/daily-summary` で両方配信
+  - [x] `/api/cron/weekly-summary` で両方配信
+  - [x] エラーハンドリング（片方失敗しても続行）
+
+### 8.3 AI要約強化
+
+- [x] **Azure OpenAI統合**
+  - [x] `lib/ai-summary.ts` 作成
+  - [x] `enhanceMarkdownWithAI()` 実装
+  - [x] 4つのセクション生成:
+    - 🎯 今日のハイライト / 今週のハイライト
+    - 👥 アクティブなメンバーの貢献内容
+    - 📦 リポジトリ別アクティビティ
+    - 💡 注目トピック
+
+- [x] **日本語プロンプト最適化**
+  - [x] 簡潔で読みやすい箇条書き
+  - [x] 絵文字の適切な使用
+  - [x] 技術的な詳細を含む
+  - [x] 週次は週全体の傾向を分析
+
+### 8.4 環境変数追加
+
+- [x] **Teams関連**
+  - [x] `TEAMS_WEBHOOK_URL` - Power Automate webhook URL
+  - [x] `TEAMS_MENTION_USERS` - メンション対象UPNリスト
+
+- [x] **Azure OpenAI関連**
+  - [x] `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint
+  - [x] `AZURE_OPENAI_API_KEY` - API key
+  - [x] `AZURE_OPENAI_DEPLOYMENT_NAME` - デプロイメント名 (gpt-4o)
+
+- [x] **Activity Summary Recipients**
+  - [x] `ACTIVITY_SUMMARY_RECIPIENTS` - メール送信先リスト
+
+### 8.5 ドキュメント更新
+
+- [x] **CLAUDE.md**
+  - [x] Teams統合の詳細追加
+  - [x] 週次サマリーの説明
+  - [x] AI要約機能の説明
+  - [x] 環境変数一覧更新
+
+- [x] **SPEC.md**
+  - [x] Activity Summary機能セクション追加
+  - [x] 環境変数リスト更新
+  - [x] DB スキーマに `activity_summaries` テーブル追加
+  - [x] ディレクトリ構成更新
+
+- [x] **TODO.md**
+  - [x] Phase 8の項目追加
+  - [x] 完了状況の更新
 
 ---
 
@@ -640,7 +730,7 @@ Generated at: 2025-10-24 08:00 JST
 
 ## 🎬 次のアクション
 
-現在のステータス: **Phase 3 完了 → 運用準備**
+現在のステータス: **Phase 8 完了 → 全機能実装完了 🎉**
 
 **完了済み**:
 
@@ -650,16 +740,26 @@ Generated at: 2025-10-24 08:00 JST
 - ✅ Phase 4: デプロイ準備・ドキュメント
 - ✅ Phase 5: メンバー管理（組織メンバー一覧・ロール・アバター表示・**統計情報・チーム管理**）
 - ✅ Phase 6: Contributors 可視化（アバター重ね表示・貢献数表示）
-- ✅ Phase 7: 複数言語サポート（20%以上の言語を全て表示・割合表示）
+- ✅ Phase 7: Activity Summary（日次サマリー・Resend Email配信・UI）
+- ✅ Phase 8: Weekly Summary & Teams Integration（週次サマリー・Teams配信・AI要約）
 
-**次のステップ**:
+**実装済み主要機能**:
 
-1. ~~Upstash QStash アカウント作成・トークン取得~~ ✅
-2. ~~メンバー管理機能の拡張（統計情報、チーム管理）~~ ✅
-3. メンバー管理機能の更なる拡張（検索・フィルタ、ページネーション）
-4. 本番環境でのテスト
-5. パフォーマンス最適化（必要に応じて）
+1. ✅ **リポジトリスキャン**: 技術スタック自動検出・Evidence表示・Contributors可視化
+2. ✅ **メンバー管理**: 組織・チーム情報・統計・アバター表示
+3. ✅ **Activity Summary**: 日次・週次の自動生成と配信
+4. ✅ **配信チャネル**: Email (Resend) + Microsoft Teams (Power Automate)
+5. ✅ **AI要約**: Azure OpenAI による日本語要約生成
+6. ✅ **スケジュール実行**: Vercel Cron Jobs（平日8AM JST日次、月曜8AM JST週次）
+
+**今後の改善案（Optional）**:
+
+1. メンバー管理機能の拡張（検索・フィルタ、ページネーション）
+2. Activity Summaryの手動生成UI
+3. リポジトリポリシーチェック強化
+4. パフォーマンス最適化（大規模組織対応）
+5. GitHub App化（OAuth → GitHub App）
 
 ---
 
-**進捗率**: 約 115/120 項目完了 (96%)
+**進捗率**: 約 155/160 項目完了 (97%)

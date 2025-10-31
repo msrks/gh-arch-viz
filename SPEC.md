@@ -31,6 +31,16 @@
 - メンバー情報の同期
 - チーム所属情報の表示（複数チーム対応）
 
+## アクティビティサマリー（Daily & Weekly）
+- **自動生成**: Vercel Cron Jobs による定期実行
+  - Daily: 月〜金 23:00 UTC (火〜土 8:00 JST)
+  - Weekly: 日 23:00 UTC (月 8:00 JST)
+- **配信チャネル**: Email (Resend) + Microsoft Teams (Power Automate webhook)
+- **AI要約**: Azure OpenAI による Highlights, Members, Repositories, Topics の生成
+- **データソース**: GitHub API (commits, PRs, issues, contributors)
+- **保存**: `activity_summaries` テーブルに Markdown 形式で保存
+- **UI**: `/activity` ページで過去のサマリー閲覧可能
+
 ---
 
 # 2) 権限とデータ取得（Better Auth 版）
@@ -75,6 +85,28 @@ QSTASH_URL=https://qstash.upstash.io
 QSTASH_TOKEN=your-qstash-token
 QSTASH_CURRENT_SIGNING_KEY=your-current-signing-key
 QSTASH_NEXT_SIGNING_KEY=your-next-signing-key
+
+# Resend (メール配信)
+RESEND_API_KEY=re_your-resend-api-key
+RESEND_FROM_EMAIL=onboarding@resend.dev
+
+# Vercel Cron
+CRON_SECRET=your-secure-random-string
+
+# GitHub Bot Token (Daily/Weekly Summary用)
+GITHUB_BOT_TOKEN=ghp_your-github-personal-access-token
+
+# Azure OpenAI (AI要約生成)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+
+# Microsoft Teams Webhook
+TEAMS_WEBHOOK_URL=your-teams-webhook-url
+TEAMS_MENTION_USERS=user1@company.com,user2@company.com
+
+# Activity Summary Recipients (カンマ区切り)
+ACTIVITY_SUMMARY_RECIPIENTS=email1@example.com,email2@example.com
 ```
 
 ---
@@ -183,12 +215,27 @@ export const teamMembers = pgTable("team_members", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const activitySummaries = pgTable("activity_summaries", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  org: text("org").notNull(),
+  summaryDate: timestamp("summary_date").notNull(), // 対象日（前日 or 週の最終日）
+  markdown: text("markdown").notNull(), // Markdown形式のサマリー
+  sentAt: timestamp("sent_at"), // 配信日時（NULL = 未配信）
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // 複合ユニークインデックス
 import { uniqueIndex } from "drizzle-orm/pg-core";
 
 export const repoInventoryUniqueIdx = uniqueIndex("repo_org_id_unique").on(
   repoInventory.org,
   repoInventory.repoId
+);
+
+export const activitySummariesUniqueIdx = uniqueIndex("activity_org_date_unique").on(
+  activitySummaries.org,
+  activitySummaries.summaryDate
 );
 ```
 
@@ -213,6 +260,8 @@ app/
   repo/[name]/page.tsx             # Repo detail
   insights/page.tsx                # Aggregations
   members/page.tsx                 # Members management
+  activity/page.tsx                # Activity summaries list
+  activity/[date]/page.tsx         # Activity summary detail
   api/auth/[...all]/route.ts       # Better Auth handler (API Route)
   api/inventory/route.ts           # GET inventory (filter/pagination)
   api/inventory/scan/route.ts      # POST: bulk scan (QStash enqueue)
@@ -221,13 +270,22 @@ app/
   api/repo/[id]/scan/route.ts      # POST: single scan
   api/members/route.ts             # GET members list
   api/members/sync/route.ts        # POST: sync members & teams
+  api/cron/daily-summary/route.ts  # Vercel Cron: daily summary
+  api/cron/weekly-summary/route.ts # Vercel Cron: weekly summary
+  api/activity/summaries/route.ts  # GET: list of summaries
+  api/activity/summaries/[date]/route.ts # GET: specific summary
 lib/
   auth.ts                       # Better Auth init + callbacks
   github.ts                     # Octokit helpers (list repos / read files)
   scan.ts                       # Detector pipeline
   qstash.ts                     # QStash client
+  activity-summary.ts           # Daily/weekly summary generator
+  ai-summary.ts                 # Azure OpenAI summary enhancement
+  email.ts                      # Resend email integration
+  teams.ts                      # Microsoft Teams webhook integration
   db/ (schema.ts index.ts)
   detectors/ (node.ts nextjs.ts docker.ts etc.)
+  middleware/auth.ts            # Authentication middleware
 components/
   ui/ (shadcn)
   scan-all-button.tsx           # Client component for bulk scan
@@ -725,17 +783,180 @@ export async function withRetry<T>(
     - トラブルシューティング
     - アーキテクチャ図（任意）
 
+## Phase 5-8: 追加機能
+
+11. ✅ **メンバー管理** (Phase 5)
+    - 組織メンバー・チーム情報の同期
+    - 統計情報（Repository Count, Total Contributions, Last Active）
+    - UI: `/members` ページ
+
+12. ✅ **Contributors 可視化** (Phase 6)
+    - リポジトリ貢献者のアバター表示
+    - 重ね表示（最大7名 + "+N"）
+    - ホバーでツールチップ
+
+13. ✅ **Activity Summary** (Phase 7-8)
+    - 日次・週次の GitHub アクティビティ集計
+    - AI要約生成 (Azure OpenAI)
+    - Email配信 (Resend) + Teams配信 (Power Automate)
+    - Vercel Cron Jobs による自動実行
+    - UI: `/activity` ページ
+
+---
+
+# 17) Activity Summary 詳細仕様
+
+## 概要
+
+組織の GitHub アクティビティ（commits, PRs, issues）を自動収集し、AI要約付きの Markdown サマリーを生成。Email と Microsoft Teams に配信する。
+
+## アーキテクチャ
+
+### データ収集
+- **GitHub API**: Octokit を使用
+- **対象データ**:
+  - Commits: 全リポジトリから時間範囲でフィルタ
+  - Pull Requests: 組織全体から検索API経由
+  - Issues: 組織全体から検索API経由
+- **時間範囲**:
+  - Daily: 前日00:00〜23:59 (JST)
+  - Weekly: 月曜00:00〜日曜23:59 (JST)
+
+### サマリー生成
+1. **ベースMarkdown生成** (`lib/activity-summary.ts`)
+   - 📊 Overview: 総計（commits, PRs, issues, active members）
+   - 🏆 Top Contributors: アクティビティ上位者（値が0のものは非表示）
+
+2. **AI要約** (`lib/ai-summary.ts`)
+   - Azure OpenAI (gpt-4o) を使用
+   - 4つのセクションを生成:
+     - 🎯 ハイライト: 重要な成果・マイルストーン
+     - 👥 メンバー: 各メンバーの貢献内容
+     - 📦 リポジトリ: 活発なリポジトリの詳細
+     - 💡 トピック: テーマ別分析
+   - 日本語プロンプトで簡潔な箇条書き生成
+
+3. **データベース保存**
+   - `activity_summaries` テーブルに Markdown 保存
+   - `org` + `summaryDate` でユニーク制約
+
+### 配信
+
+#### Email (Resend)
+- **From**: `RESEND_FROM_EMAIL`
+- **To**: `ACTIVITY_SUMMARY_RECIPIENTS` (カンマ区切り)
+- **Subject**: "GitHub Daily Summary - YYYY-MM-DD" / "GitHub Weekly Summary - MMM DD - MMM DD, YYYY"
+- **Body**: Markdown → HTML 変換 (marked)
+
+#### Microsoft Teams (Power Automate)
+- **Webhook**: `TEAMS_WEBHOOK_URL`
+- **Format**: Adaptive Cards v1.4
+- **Width**: Full (`msteams.width = "Full"`)
+- **Mentions**: `TEAMS_MENTION_USERS` (カンマ区切りUPN)
+  - `<at>user0</at>` タグで表示
+  - `entities` 配列でマッピング
+- **Content**:
+  - Overview を Facts 形式で表示
+  - Top Contributors をテキストブロックで表示
+  - 詳細は Activity ページへのリンク
+
+#### 並列配信
+```ts
+await Promise.all([
+  sendDailySummary(...),  // Resend
+  sendDailySummaryToTeams(...)  // Teams
+]);
+```
+
+### スケジュール実行 (Vercel Cron)
+
+**設定** (`vercel.json`):
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/daily-summary",
+      "schedule": "0 23 * * 1-5"  // Mon-Fri 23:00 UTC = Tue-Sat 8:00 JST
+    },
+    {
+      "path": "/api/cron/weekly-summary",
+      "schedule": "0 23 * * 0"  // Sun 23:00 UTC = Mon 8:00 JST
+    }
+  ]
+}
+```
+
+**認証**: `CRON_SECRET` による Bearer token チェック
+
+**実行フロー**:
+1. Cron が API エンドポイントを呼び出し
+2. 認証チェック (`CRON_SECRET`)
+3. GitHub Bot Token で Octokit 初期化
+4. アクティビティデータ収集
+5. AI要約生成
+6. DB保存
+7. Email + Teams 並列配信
+8. `sentAt` タイムスタンプ更新
+
+## 環境変数
+
+```bash
+# GitHub Bot Token (Activity Summary用)
+GITHUB_BOT_TOKEN=ghp_...
+
+# Resend
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=noreply@example.com
+ACTIVITY_SUMMARY_RECIPIENTS=user1@example.com,user2@example.com
+
+# Microsoft Teams
+TEAMS_WEBHOOK_URL=https://...
+TEAMS_MENTION_USERS=user1@company.com,user2@company.com
+
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT=https://...
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+
+# Vercel Cron
+CRON_SECRET=...  # openssl rand -base64 32
+```
+
+## UI
+
+### `/activity` - サマリー一覧
+- 過去のサマリー一覧（日付でソート）
+- 統計情報（Total Summaries, Emails Sent, Last Sent）
+- 日付クリックで詳細ページへ
+
+### `/activity/[date]` - サマリー詳細
+- Markdown レンダリング（GitHub風スタイル）
+- メタデータ（組織名、日付、配信日時）
+
+## 制限事項
+
+- **Vercel Cron 実行時間**: Hobby 10秒, Pro 60秒
+- **GitHub API Rate Limit**: 5000 req/hour (認証済み)
+- **Resend 無料枠**: 100 emails/day, 3000/month
+- **Azure OpenAI**: トークン数・レート制限に注意
+
 ---
 
 ## 実装優先順位
 
-**MVP（最小限）**: 1-6 + 7（メインテーブルのみ）
-**完全版**: 全て
+**MVP（最小限）**: Phase 1-4
+**拡張版**: Phase 1-6
+**完全版**: Phase 1-8 (全機能)
 
 ---
 
-この仕様で実装準備が整いました。次のステップを指示してください：
+## プロジェクト完成度
 
-- **自動実装開始**: 「Phase 1 から実装して」
-- **部分実装**: 「認証部分だけ先に」
-- **質問・調整**: 仕様の不明点を確認
+✅ **Phase 1-8 全て完了**
+
+主要機能:
+- リポジトリスキャン・技術スタック検出
+- メンバー・チーム管理
+- Contributors 可視化
+- Daily/Weekly Activity Summary (AI要約付き)
+- Email + Teams 配信
