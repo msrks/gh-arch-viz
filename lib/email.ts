@@ -9,9 +9,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 /**
  * Convert markdown to HTML with GitHub-flavored styling
  * @param markdown - Markdown content
- * @param includeInfographic - Whether to include infographic image placeholder
+ * @param infographicDataUri - Optional base64 data URI for infographic image
  */
-function markdownToHtml(markdown: string, includeInfographic: boolean = false): string {
+function markdownToHtml(markdown: string, infographicDataUri?: string): string {
   // Configure marked for GitHub-flavored markdown
   marked.setOptions({
     gfm: true,
@@ -20,11 +20,11 @@ function markdownToHtml(markdown: string, includeInfographic: boolean = false): 
 
   const rawHtml = marked.parse(markdown) as string;
 
-  // Add infographic image at the top if requested
-  const infographicHtml = includeInfographic
+  // Add infographic image at the top if provided
+  const infographicHtml = infographicDataUri
     ? `
   <div style="margin-bottom: 32px; text-align: center;">
-    <img src="cid:infographic" alt="Activity Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+    <img src="${infographicDataUri}" alt="Activity Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
   </div>
     `
     : '';
@@ -207,8 +207,15 @@ export async function sendDailySummary(
       enhancedMarkdown = `${markdown}\n\n---\n\n📖 **[Webで全文を読む](${webUrl})**`;
     }
 
-    // Convert markdown to HTML (include infographic placeholder if provided)
-    const html = markdownToHtml(enhancedMarkdown, !!infographic);
+    // Convert infographic to base64 data URI if provided
+    let infographicDataUri: string | undefined;
+    if (infographic) {
+      const base64Data = Buffer.from(infographic.imageData).toString('base64');
+      infographicDataUri = `data:${infographic.mediaType};base64,${base64Data}`;
+    }
+
+    // Convert markdown to HTML (include infographic data URI if provided)
+    const html = markdownToHtml(enhancedMarkdown, infographicDataUri);
 
     // Prepare email payload
     const emailPayload: {
@@ -216,31 +223,12 @@ export async function sendDailySummary(
       to: string[];
       subject: string;
       html: string;
-      attachments?: Array<{
-        filename: string;
-        content: Buffer;
-        content_id?: string;
-        content_disposition?: string;
-      }>;
     } = {
       from: fromEmail,
       to: toAddresses,
       subject,
       html,
     };
-
-    // Add infographic as inline attachment if provided
-    if (infographic) {
-      const extension = infographic.mediaType.split('/')[1] || 'png';
-      emailPayload.attachments = [
-        {
-          filename: `infographic.${extension}`,
-          content: Buffer.from(infographic.imageData),
-          content_id: '<infographic>', // Content-ID must be wrapped in angle brackets
-          content_disposition: 'inline', // Mark as inline attachment
-        },
-      ];
-    }
 
     // Send email using Resend
     const { data, error } = await resend.emails.send(emailPayload);
