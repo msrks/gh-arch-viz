@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { format } from "date-fns";
 import { makeOctokit } from "@/lib/github";
-import { generateDailySummary } from "@/lib/activity-summary";
+import { generateDailySummary, collectActivityData } from "@/lib/activity-summary";
 import { sendDailySummary, getRecipients } from "@/lib/email";
 import { sendToTeams } from "@/lib/teams";
+import { generateInfographic } from "@/lib/infographic";
 import { db } from "@/lib/db";
 import { activitySummaries } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -69,10 +70,23 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Cron] Generating daily summary for ${org} (last 24 hours: ${twentyFourHoursAgo.toISOString()} - ${now.toISOString()})`);
 
-    // 5. Generate summary with explicit time range
-    const summaryId = await generateDailySummary(octokit, org, twentyFourHoursAgo, now);
+    // 5. Collect activity data (for infographic generation)
+    const activityData = await collectActivityData(octokit, org, twentyFourHoursAgo, now);
 
-    // 6. Get generated markdown from database
+    // 6. Generate infographic in parallel with summary
+    const [summaryId, infographic] = await Promise.all([
+      generateDailySummary(octokit, org, twentyFourHoursAgo, now),
+      generateInfographic(org, activityData, 'daily'),
+    ]);
+
+    // Log infographic generation result
+    if (infographic) {
+      console.log('[Cron] Infographic generated successfully');
+    } else {
+      console.log('[Cron] Infographic generation skipped or failed');
+    }
+
+    // 7. Get generated markdown from database
     const summary = await db
       .select()
       .from(activitySummaries)
@@ -85,13 +99,13 @@ export async function GET(request: NextRequest) {
 
     const markdown = summary[0].markdown;
 
-    // 7. Send to email and Teams in parallel
+    // 8. Send to email and Teams in parallel
     const recipients = await getRecipients(org);
     const subject = `GitHub Activity Summary - ${format(now, 'MMMM dd, yyyy')}`;
 
     const [emailResult, teamsResult] = await Promise.all([
       recipients.length > 0
-        ? sendDailySummary(recipients, subject, markdown, now)
+        ? sendDailySummary(recipients, subject, markdown, now, infographic || undefined)
         : Promise.resolve({ success: false, error: 'No recipients configured' }),
       sendToTeams(markdown, org, now),
     ]);

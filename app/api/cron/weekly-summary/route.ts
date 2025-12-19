@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { format } from "date-fns";
 import { makeOctokit } from "@/lib/github";
-import { generateWeeklySummary } from "@/lib/activity-summary";
+import { generateWeeklySummary, collectActivityData } from "@/lib/activity-summary";
 import { sendDailySummary, getRecipients } from "@/lib/email";
 import { sendToTeams } from "@/lib/teams";
+import { generateInfographic } from "@/lib/infographic";
 import { db } from "@/lib/db";
 import { activitySummaries } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -68,10 +69,23 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Cron] Generating weekly summary for ${org} (last 7 days: ${sevenDaysAgo.toISOString()} - ${now.toISOString()})`);
 
-    // 5. Generate summary (pass UTC times directly - they will be used as-is by GitHub API)
-    const summaryId = await generateWeeklySummary(octokit, org, sevenDaysAgo, now);
+    // 5. Collect activity data (for infographic generation)
+    const activityData = await collectActivityData(octokit, org, sevenDaysAgo, now);
 
-    // 6. Get generated markdown from database
+    // 6. Generate infographic in parallel with summary
+    const [summaryId, infographic] = await Promise.all([
+      generateWeeklySummary(octokit, org, sevenDaysAgo, now),
+      generateInfographic(org, activityData, 'weekly'),
+    ]);
+
+    // Log infographic generation result
+    if (infographic) {
+      console.log('[Cron] Infographic generated successfully');
+    } else {
+      console.log('[Cron] Infographic generation skipped or failed');
+    }
+
+    // 7. Get generated markdown from database
     const summary = await db
       .select()
       .from(activitySummaries)
@@ -84,13 +98,13 @@ export async function GET(request: NextRequest) {
 
     const markdown = summary[0].markdown;
 
-    // 7. Send to email and Teams in parallel
+    // 8. Send to email and Teams in parallel
     const recipients = await getRecipients(org);
     const subject = `GitHub Weekly Summary - ${weekLabel}`;
 
     const [emailResult, teamsResult] = await Promise.all([
       recipients.length > 0
-        ? sendDailySummary(recipients, subject, markdown, now)
+        ? sendDailySummary(recipients, subject, markdown, now, infographic || undefined)
         : Promise.resolve({ success: false, error: 'No recipients configured' }),
       sendToTeams(markdown, org, now),
     ]);

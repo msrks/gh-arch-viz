@@ -40,6 +40,7 @@ This is a **Next.js 15** application using the **App Router** pattern. This is a
   - `activity-summary.ts` - Daily/weekly GitHub activity summary generator
   - `email.ts` - Resend email integration for activity summaries
   - `teams.ts` - Microsoft Teams webhook integration for activity summaries
+  - `infographic.ts` - Gemini 3 Pro Image infographic generator for activity summaries
   - `db/` - Drizzle ORM schema and client
   - `detectors/` - Technology detection modules (Node.js, Next.js, Docker, etc.)
   - `middleware/auth.ts` - Authentication middleware
@@ -231,3 +232,11 @@ Weekly summaries show commit counts only (no individual logs to reduce length).
 - `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
 - `AZURE_OPENAI_DEPLOYMENT_NAME` - Deployment name (e.g., gpt-4o)
 - Generates contextual insights for Highlights, Members, Repositories, and Topics sections
+
+**Infographic Generation (Gemini 3 Pro Image)**:
+- `AI_GATEWAY_API_KEY` - Required for generating infographics with Gemini 3 Pro Image
+- Infographics are generated automatically for daily and weekly summaries
+- Images are embedded inline at the top of email summaries
+- Uses the Vercel AI SDK with `google/gemini-3-pro-image` model
+- Displays overview metrics, top contributors, and repository activity
+- If not configured, infographic generation is skipped gracefully

@@ -8,8 +8,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Convert markdown to HTML with GitHub-flavored styling
+ * @param markdown - Markdown content
+ * @param includeInfographic - Whether to include infographic image placeholder
  */
-function markdownToHtml(markdown: string): string {
+function markdownToHtml(markdown: string, includeInfographic: boolean = false): string {
   // Configure marked for GitHub-flavored markdown
   marked.setOptions({
     gfm: true,
@@ -17,6 +19,15 @@ function markdownToHtml(markdown: string): string {
   });
 
   const rawHtml = marked.parse(markdown) as string;
+
+  // Add infographic image at the top if requested
+  const infographicHtml = includeInfographic
+    ? `
+  <div style="margin-bottom: 32px; text-align: center;">
+    <img src="cid:infographic" alt="Activity Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+  </div>
+    `
+    : '';
 
   // Wrap in styled HTML template
   return `
@@ -144,6 +155,7 @@ function markdownToHtml(markdown: string): string {
   </style>
 </head>
 <body>
+  ${infographicHtml}
   ${rawHtml}
   <div class="footer">
     <p>This is an automated email sent by gh-arch-viz. Please do not reply to this email.</p>
@@ -159,13 +171,15 @@ function markdownToHtml(markdown: string): string {
  * @param subject - Email subject
  * @param markdown - Markdown content
  * @param summaryDate - Date of the summary (for web link)
+ * @param infographic - Optional infographic image data
  * @returns Resend response with email ID
  */
 export async function sendDailySummary(
   recipients: string[] | string,
   subject: string,
   markdown: string,
-  summaryDate?: Date
+  summaryDate?: Date,
+  infographic?: { imageData: Uint8Array; mediaType: string }
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     // Parse recipients
@@ -193,16 +207,41 @@ export async function sendDailySummary(
       enhancedMarkdown = `${markdown}\n\n---\n\n📖 **[Webで全文を読む](${webUrl})**`;
     }
 
-    // Convert markdown to HTML
-    const html = markdownToHtml(enhancedMarkdown);
+    // Convert markdown to HTML (include infographic placeholder if provided)
+    const html = markdownToHtml(enhancedMarkdown, !!infographic);
 
-    // Send email using Resend
-    const { data, error } = await resend.emails.send({
+    // Prepare email payload
+    const emailPayload: {
+      from: string;
+      to: string[];
+      subject: string;
+      html: string;
+      attachments?: Array<{
+        filename: string;
+        content: Buffer;
+        content_id?: string;
+      }>;
+    } = {
       from: fromEmail,
       to: toAddresses,
       subject,
       html,
-    });
+    };
+
+    // Add infographic as inline attachment if provided
+    if (infographic) {
+      const extension = infographic.mediaType.split('/')[1] || 'png';
+      emailPayload.attachments = [
+        {
+          filename: `infographic.${extension}`,
+          content: Buffer.from(infographic.imageData),
+          content_id: 'infographic', // This matches the cid:infographic in HTML
+        },
+      ];
+    }
+
+    // Send email using Resend
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       console.error('Failed to send email via Resend:', error);
