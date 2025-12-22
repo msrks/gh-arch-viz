@@ -236,7 +236,7 @@ export async function sendDailySummary(
         {
           filename: `infographic.${extension}`,
           content: Buffer.from(infographic.imageData),
-          content_id: '<infographic>', // Content-ID must be wrapped in angle brackets
+          content_id: 'infographic', // Content-ID without angle brackets (matches cid:infographic in HTML)
           content_disposition: 'inline', // Mark as inline attachment
         },
       ];
