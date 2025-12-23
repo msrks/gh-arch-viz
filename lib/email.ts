@@ -219,8 +219,7 @@ export async function sendDailySummary(
       attachments?: Array<{
         filename: string;
         content: Buffer;
-        content_id?: string;
-        content_disposition?: string;
+        contentId?: string; // Resend uses camelCase contentId, not content_id
       }>;
     } = {
       from: fromEmail,
@@ -236,8 +235,7 @@ export async function sendDailySummary(
         {
           filename: `infographic.${extension}`,
           content: Buffer.from(infographic.imageData),
-          content_id: 'infographic', // Content-ID without angle brackets (matches cid:infographic in HTML)
-          content_disposition: 'inline', // Mark as inline attachment
+          contentId: 'infographic', // Resend uses camelCase contentId (matches cid:infographic in HTML)
         },
       ];
     }
